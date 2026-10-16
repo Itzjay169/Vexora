@@ -1,10 +1,10 @@
 # Vexora Esports Tournament Platform - Engineering Guide
 
 ## Current Status & Phase Tracking
-- **Current Phase**: **Phase 28: Payouts, Reconciliation & Financial Reports**
-- **Status**: **Phase 27 Completed — Ready for Phase 28 (Payouts, Reconciliation & Financial Reports)**
+- **Current Phase**: **Phase 29: Real-Time Gateway (WebSockets)**
+- **Status**: **Phase 28 Completed — Ready for Phase 29 (Real-Time Gateway & Live Events)**
 - **Decision Recorded**: **v1 Public Launch = 100% FREE Tournaments Only**
-- **Next Phase**: **Phase 28: Payouts, Reconciliation & Financial Reports**
+- **Next Phase**: **Phase 29: Real-Time Gateway (WebSockets)**
 
 ---
 
@@ -736,4 +736,43 @@ vexora/
     - Security Gate: Event-ID deduplication verified via `(provider, event_id)` constraint.
     - Security Gate: Client direct confirmation rejected; only signed webhooks confirm payment.
     - 529/529 monorepo unit and domain tests passing (+21 Phase 27 tests in `tests/unit/phase27-payments-escrow-webhooks.test.js`).
+    - Pre-commit secret scan passing with 0 secrets detected.
+- **Phase 28: Payouts, Reconciliation & Financial Reports**
+  - **Database Migration 021**: `infra/migrations/021_payouts_reconciliation_and_reports.sql`:
+    - `payout_destinations`: UPI IDs and Bank Accounts with mandatory 24-hour security cooling-off delay (`cooling_off_until`), IFSC validation, and masked account formatting.
+    - `payout_requests`: Payout queue lifecycle (`REQUESTED` → `UNDER_REVIEW` → `APPROVED` → `PROCESSING` → `PAID` / `FAILED` / `REJECTED`), Maker-Checker constraint (`user_id != primary_approver_id`), high-value dual approver constraint (`primary_approver_id != secondary_approver_id`), and immutability trigger preventing modification of finalized payouts.
+    - `financial_reconciliations`: Daily automated 3-way reconciliation audit table (ledger vs gateways vs bank payouts) with variance tracking and verified timestamps.
+    - `financial_discrepancies`: Flagged financial variances (`MISSING_PROVIDER_RECORD`, `UNMATCHED_LEDGER_TRANSACTION`, `AMOUNT_MISMATCH`, `UNRECONCILED_PAYOUT`, `BALANCE_EQUILIBRIUM_FAULT`) with resolution audit trail.
+    - `financial_report_exports`: Cryptographically watermarked and SHA-256 hashed export records.
+  - **Backend Services**:
+    - `backend/src/payouts/payouts.service.js`:
+      - `addPayoutDestination`: Registers bank/UPI destination with mandatory 24-hour cooling-off delay to prevent account takeover cash-out drains.
+      - `requestPayout`: Validates balance, verifies destination cooling-off status, creates double-entry wallet hold, and classifies high-value payouts (≥ ₹10,000 threshold).
+      - `approvePrimary`: Enforces Maker-Checker invariant (`SELF_APPROVAL_FORBIDDEN` if creator attempts self-approval).
+      - `approveSecondaryHighValue`: Mandates secondary distinct admin approval (`DUAL_APPROVER_SAME_ADMIN_FORBIDDEN`) with step-up MFA verification for high-value payouts.
+      - `rejectPayout`: Transitions payout to `REJECTED` and automatically releases the wallet hold.
+      - `markPayoutPaid`: Finalizes payout with mandatory Bank UTR reference and executes atomic double-entry debit from player wallet to platform escrow.
+    - `backend/src/payouts/reconciliation.service.js`:
+      - `runDailyReconciliation`: Daily 3-way automated audit comparing double-entry ledger totals against payment gateway deposits and settled bank payouts. Detects and flags variances into `financial_discrepancies`.
+      - `resolveDiscrepancy`: Compliance officer resolution with mandatory 10+ character root-cause justification and audit logging.
+    - `backend/src/payouts/financialReports.service.js`:
+      - `generateSummary`: Computes aggregated deposits, payouts, current escrow liability, and ledger balance equilibrium (`SUM(amount) = 0`).
+      - `exportReport`: Emits cryptographically watermarked reports (`CONFIDENTIAL // EXPORTED_BY_{adminId} // {timestamp}`) with SHA-256 integrity hash verification.
+  - **API Routes Mounted**:
+    - `payoutsRouter` mounted at `/api/v1/payouts`: `POST /destinations`, `GET /destinations`, `POST /request`, `GET /`, `POST /:id/approve-primary`, `POST /:id/approve-secondary`, `POST /:id/reject`, `POST /:id/mark-paid`, `POST /admin/reconcile`, `GET /admin/reconcile/history`, `GET /admin/reconcile/discrepancies`, `POST /admin/reconcile/discrepancies/:id/resolve`, `GET /admin/reports/summary`, `POST /admin/reports/export`, `GET /admin/reports/exports`.
+  - **Validation Schemas Added**:
+    - `packages/validation/src/index.ts`: `AddPayoutDestinationSchema`, `RequestPayoutSchema`, `ApprovePayoutSchema`, `SecondaryApprovePayoutSchema`, `RejectPayoutSchema`, `MarkPayoutPaidSchema`, `RunReconciliationSchema`, `ResolveDiscrepancySchema`, `ExportFinancialReportSchema`.
+  - **Flutter Mobile**:
+    - `apps/mobile/lib/screens/payout_screen.dart`: Cash-out interface with biometric authorization gate, destination manager with 24-hour cooling-off countdown timer, withdrawal request submission, and bank settlement UTR confirmation feed.
+    - Verified with official Dart MCP (`dart-mcp-server` `analyze_files`): 0 errors, 0 warnings.
+  - **Admin Desktop & Web Consoles**:
+    - `apps/admin/src/app/payouts/page.tsx`: Payout approvals queue with Maker-Checker prevention badges, high-value 2-admin dual approval controls, 3-way daily audit reconciliation matrix, and watermarked financial report generator. Integrated into `AdminShell.tsx` navigation.
+    - `apps/web/src/app/payouts/page.tsx`: Web portal cash-out page with destination manager, cooling-off countdown warning, withdrawal form, and live status tracker.
+  - **Security Gate & Testing**:
+    - Security Gate: Creator cannot approve own payout (`SELF_APPROVAL_FORBIDDEN` strictly enforced).
+    - Security Gate: High-value payouts require 2 distinct administrators with step-up MFA.
+    - Security Gate: 24-hour cooling-off period enforced on newly added destinations.
+    - Security Gate: Payouts marked paid only with valid bank UTR reference.
+    - Security Gate: Financial report exports stamped with cryptographic watermark and SHA-256 integrity hash.
+    - 548/548 monorepo unit and domain tests passing (+19 Phase 28 tests in `tests/unit/phase28-payouts-reconciliation.test.js`).
     - Pre-commit secret scan passing with 0 secrets detected.

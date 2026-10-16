@@ -231,7 +231,7 @@ Goal: Money in, holds and prizes. PDF refs: Sections 9, 26, 39 (Phase 6). Build:
 Payment-provider integration; signed webhooks with timestamp + event-ID de-duplication (webhook_events table); client never confirms payment; idempotency keys.
 Tournament entry via holds; organiser-funded prize escrow locked before registration opens; refunds on cancellation; settlement job; published refund rules.
 Feature flags and regional kill-switches (Remote Config + admin). MCP: Context7 (payment SDK, webhook signatures), Postgres, Playwright (hold -> cancel -> release), Firebase (Remote Config), Developer Knowledge (Play Integrity/App Attest). Security gate: Webhook signature/replay/duplicate tests pass; test keys only outside production. Exit: Staging cycle: redeem -> join -> hold -> cancel -> release works.
-PHASE 28: Payouts, Reconciliation & Financial Reports [NEXT]
+PHASE 28: Payouts, Reconciliation & Financial Reports [COMPLETED]
 
 Goal: Controlled cash-out and audit-ready finance. PDF refs: Sections 8, 9, 47 (Wallet and payout security). Build:
 
@@ -239,7 +239,7 @@ Payout queue: requested -> under review -> approved -> processing -> paid/failed
 Payout marked paid only after provider/bank reconciliation.
 Daily reconciliation job (ledger vs provider vs payouts), discrepancy dashboard, alerts; finance reports with watermarked, logged exports. MCP: Postgres, Playwright (two-admin payout approval), Context7, Dart MCP, GitHub. Security gate: Creator cannot approve own payout; zero unexplained differences on test data. Exit: finish -> reward -> payout request -> reconcile works; legal sign-off recorded per enabled region or wallet stays in free/test mode.
 PART H: REAL-TIME & NOTIFICATIONS (Phases 29-30)
-PHASE 29: Real-Time Gateway (WebSockets)
+PHASE 29: Real-Time Gateway (WebSockets) [NEXT]
 
 Goal: Live events, safely. PDF refs: Sections 14, 39 (Phase 7). Build:
 

@@ -1063,6 +1063,80 @@ export const RegionalConfigUpdateSchema = z.object({
 });
 export type RegionalConfigUpdateInput = z.infer<typeof RegionalConfigUpdateSchema>;
 
+// ─── Phase 28: Payouts, Reconciliation & Financial Reports Schemas ─────────
+
+export const DestinationTypeEnum = z.enum(['UPI', 'BANK_ACCOUNT']);
+export type DestinationType = z.infer<typeof DestinationTypeEnum>;
+
+export const AddPayoutDestinationSchema = z.object({
+  destinationType: DestinationTypeEnum,
+  upiId: z.string().includes('@', { message: 'UPI ID must contain @' }).optional(),
+  bankAccountNumber: z.string().min(8, 'Bank account number must be at least 8 digits').optional(),
+  bankIfsc: z.string().length(11, 'IFSC code must be exactly 11 characters').optional(),
+  accountHolderName: z.string().min(2, 'Account holder name must be at least 2 characters').max(100),
+}).refine(
+  (data) => {
+    if (data.destinationType === 'UPI') return Boolean(data.upiId);
+    if (data.destinationType === 'BANK_ACCOUNT') return Boolean(data.bankAccountNumber && data.bankIfsc);
+    return false;
+  },
+  { message: 'Destination details must match selected type (UPI ID or Bank Account + IFSC)', path: ['destinationType'] }
+);
+export type AddPayoutDestinationInput = z.infer<typeof AddPayoutDestinationSchema>;
+
+export const RequestPayoutSchema = z.object({
+  destinationId: z.string().uuid(),
+  amount: z.number().positive('Payout amount must be greater than 0'),
+});
+export type RequestPayoutInput = z.infer<typeof RequestPayoutSchema>;
+
+export const ApprovePayoutSchema = z.object({
+  notes: z.string().max(500).optional(),
+});
+export type ApprovePayoutInput = z.infer<typeof ApprovePayoutSchema>;
+
+export const SecondaryApprovePayoutSchema = z.object({
+  stepUpAuthVerified: z.boolean().refine((val) => val === true, {
+    message: 'Step-up authentication must be verified for high-value payout approval',
+  }),
+  notes: z.string().max(500).optional(),
+});
+export type SecondaryApprovePayoutInput = z.infer<typeof SecondaryApprovePayoutSchema>;
+
+export const RejectPayoutSchema = z.object({
+  reason: z.string().min(5, 'Rejection reason must be at least 5 characters').max(500),
+});
+export type RejectPayoutInput = z.infer<typeof RejectPayoutSchema>;
+
+export const MarkPayoutPaidSchema = z.object({
+  bankUtr: z.string().min(6, 'Bank UTR must be at least 6 characters').max(50),
+  provider: z.enum(['RAZORPAYX', 'CASHFREE', 'BANK_NEFT_IMPS', 'MANUAL_WIRE']).default('BANK_NEFT_IMPS'),
+  providerPayoutId: z.string().max(100).optional(),
+});
+export type MarkPayoutPaidInput = z.infer<typeof MarkPayoutPaidSchema>;
+
+export const RunReconciliationSchema = z.object({
+  dateStr: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be formatted as YYYY-MM-DD').optional(),
+});
+export type RunReconciliationInput = z.infer<typeof RunReconciliationSchema>;
+
+export const ResolveDiscrepancySchema = z.object({
+  resolutionNotes: z.string().min(10, 'Resolution notes must be at least 10 characters').max(1000),
+});
+export type ResolveDiscrepancyInput = z.infer<typeof ResolveDiscrepancySchema>;
+
+export const ExportFinancialReportSchema = z.object({
+  reportType: z.enum(['DAILY_RECONCILIATION', 'MONTHLY_SUMMARY', 'TAX_GST_REPORT', 'ESCROW_LIABILITY', 'AUDIT_LEDGER']),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be YYYY-MM-DD'),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be YYYY-MM-DD'),
+  customWatermark: z.string().max(100).optional(),
+}).refine(
+  (data) => new Date(data.endDate) >= new Date(data.startDate),
+  { message: 'End date must be at or after start date', path: ['endDate'] }
+);
+export type ExportFinancialReportInput = z.infer<typeof ExportFinancialReportSchema>;
+
+
 
 
 
