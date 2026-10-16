@@ -1421,5 +1421,85 @@ export const TicketStatusUpdateSchema = z.object({
 });
 export type TicketStatusUpdateInput = z.infer<typeof TicketStatusUpdateSchema>;
 
+// ─── Phase 34: Vexora Extended Features Schemas (Section 41 & 43) ────────────
+
+export const ScrimCreateSchema = z.object({
+  title: z.string().min(3).max(150),
+  game_id: z.string().uuid(),
+  max_players: z.number().int().min(2).max(100).default(16),
+  scheduled_at: z.string().datetime().optional(),
+  rules_notes: z.string().max(1000).optional(),
+});
+export type ScrimCreateInput = z.infer<typeof ScrimCreateSchema>;
+
+export const LftPostType = z.enum(['PLAYER_LFT', 'TEAM_RECRUITING']);
+export type LftPostType = z.infer<typeof LftPostType>;
+
+export const LftPostCreateSchema = z.object({
+  post_type: LftPostType,
+  game_id: z.string().uuid(),
+  preferred_role: z.string().min(2).max(50),
+  rank_tier: z.string().max(50).optional(),
+  description: z.string().min(10).max(1000),
+  in_game_uid: z.string().max(100).optional(),
+  team_id: z.string().uuid().optional(),
+});
+export type LftPostCreateInput = z.infer<typeof LftPostCreateSchema>;
+
+export const FollowTargetType = z.enum(['ORGANISER', 'TEAM', 'GAME']);
+export type FollowTargetType = z.infer<typeof FollowTargetType>;
+
+export const UserFollowSchema = z.object({
+  target_type: FollowTargetType,
+  target_id: z.string().uuid(),
+});
+export type UserFollowInput = z.infer<typeof UserFollowSchema>;
+
+export const TournamentTemplateCreateSchema = z.object({
+  template_name: z.string().min(3).max(150),
+  game_id: z.string().uuid(),
+  format: z.string().min(2).max(50),
+  team_size: z.number().int().min(1).max(100).default(1),
+  rule_json: z.record(z.any()).default({}),
+  scoring_schema_id: z.string().uuid().optional(),
+  evidence_rules: z.record(z.any()).default({}),
+});
+export type TournamentTemplateCreateInput = z.infer<typeof TournamentTemplateCreateSchema>;
+
+export const TournamentStaffRole = z.enum(['CO_ORGANISER', 'REFEREE', 'CASTER', 'SCOREKEEPER']);
+export type TournamentStaffRole = z.infer<typeof TournamentStaffRole>;
+
+export const TournamentStaffAssignSchema = z.object({
+  user_id: z.string().uuid(),
+  staff_role: TournamentStaffRole,
+  permissions: z.record(z.boolean()).default({ can_verify_results: true, can_manage_lobby: true }),
+});
+export type TournamentStaffAssignInput = z.infer<typeof TournamentStaffAssignSchema>;
+
+export const SponsorBannerCreateSchema = z.object({
+  sponsor_name: z.string().min(2).max(150),
+  banner_url: z.string().url(),
+  redirect_url: z.string().url().optional(),
+});
+export type SponsorBannerCreateInput = z.infer<typeof SponsorBannerCreateSchema>;
+
+export const ReferralClaimSchema = z.object({
+  referral_code: z.string().min(4).max(50),
+});
+export type ReferralClaimInput = z.infer<typeof ReferralClaimSchema>;
+
+export const SafeChatMessageSchema = z.object({
+  channel_type: z.enum(['TOURNAMENT_LOBBY', 'SCRIM_LOBBY', 'MATCH_ROOM']),
+  channel_id: z.string().uuid(),
+  message: z.string().min(1).max(500),
+});
+export type SafeChatMessageInput = z.infer<typeof SafeChatMessageSchema>;
+
+export const FairPlayPledgeSchema = z.object({
+  pledge_version: z.string().min(2).max(20).default('v1.0'),
+});
+export type FairPlayPledgeInput = z.infer<typeof FairPlayPledgeSchema>;
+
+
 
 

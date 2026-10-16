@@ -1,10 +1,10 @@
 # Vexora Esports Tournament Platform - Engineering Guide
 
 ## Current Status & Phase Tracking
-- **Current Phase**: **Phase 34: Vexora Extended Features**
-- **Status**: **Phase 33 (Support Desk) Completed — Ready for Phase 34 (Extended Features)**
+- **Current Phase**: **Phase 35: Privacy, Compliance, Localisation & Accessibility**
+- **Status**: **Phase 34 (Extended Features) Completed — Ready for Phase 35**
 - **Decision Recorded**: **v1 Public Launch = 100% FREE Tournaments Only**
-- **Next Phase**: **Phase 34: Vexora Extended Features**
+- **Next Phase**: **Phase 35: Privacy, Compliance, Localisation & Accessibility**
 
 ---
 

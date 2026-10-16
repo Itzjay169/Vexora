@@ -273,7 +273,7 @@ Goal: Ticketing instead of ad-hoc chat. PDF refs: Sections 23, 39 (Phase 8). Bui
 support_tickets/ticket_events: ticket ID, category (Account, Tournament, Match, Payment, Wallet, Payout, Safety, Organiser), priority, SLA, owner, audit history; canned replies; escalation to finance/moderation; CSAT survey; SLA breach alerts (first response 4h, safety 1h).
 Support Agent role limits (no KYC, no balance edits). MCP: Stitch, Playwright, Postgres, Dart MCP. Security gate: Support sees only limited user context. Exit: SLAs visible; breach alerts work.
 PART J: EXTENDED FEATURES (Phase 34)
-PHASE 34: Vexora Extended Features [NEXT]
+PHASE 34: Vexora Extended Features [COMPLETED]
 
 Goal: Add Section 41 extras without touching MVP stability (each behind a feature flag). PDF refs: Sections 41, 43. Build (in priority order, one PR each):
 
@@ -282,7 +282,7 @@ Organiser: templates/clone tournament, co-organisers and referees, bulk result e
 Admin: case management timeline, fraud graph view (hashed identifiers), policy engine, scheduled reports; read-only "view as" simulator (no impersonation).
 Platform: referral programme with anti-abuse, season ladders/qualifiers. MCP: Stitch, Dart MCP, Playwright, Postgres, Context7, GitHub. Security gate: Chat/spam rate limits; no phone numbers exposed. Exit: Each feature flagged, tested, and documented; MVP regression suite still green.
 PART K: COMPLIANCE, SECURITY & RELEASE (Phases 35-38)
-PHASE 35: Privacy, Compliance, Localisation & Accessibility
+PHASE 35: Privacy, Compliance, Localisation & Accessibility [NEXT]
 
 Goal: Legal and inclusive readiness. PDF refs: Sections 24, 31, 48. Build:
 
