@@ -282,14 +282,14 @@ Organiser: templates/clone tournament, co-organisers and referees, bulk result e
 Admin: case management timeline, fraud graph view (hashed identifiers), policy engine, scheduled reports; read-only "view as" simulator (no impersonation).
 Platform: referral programme with anti-abuse, season ladders/qualifiers. MCP: Stitch, Dart MCP, Playwright, Postgres, Context7, GitHub. Security gate: Chat/spam rate limits; no phone numbers exposed. Exit: Each feature flagged, tested, and documented; MVP regression suite still green.
 PART K: COMPLIANCE, SECURITY & RELEASE (Phases 35-38)
-PHASE 35: Privacy, Compliance, Localisation & Accessibility [NEXT]
+PHASE 35: Privacy, Compliance, Localisation & Accessibility [COMPLETED]
 
 Goal: Legal and inclusive readiness. PDF refs: Sections 24, 31, 48. Build:
 
 Data map and processing register; granular revocable consent (analytics, notifications, location, marketing); guardian consent for minors; export/correct/delete-my-data workflows with SLAs; retention schedule job (evidence 12 months after case closure, chat 90 days, logs 12 months, KYC/financial as required); IP/device hashing with rotating salts; vendor register.
 Grievance officer page and takedown workflow (India IT Rules).
 Localisation (English, Hindi, Odia), regional formatting, RTL readiness; accessibility audit (screen reader, contrast, large fonts). MCP: Developer Knowledge, Dart MCP, Playwright (accessibility), Postgres, Filesystem. Security gate: Deletion keeps legally required financial/audit records only. Exit: Data-subject request tested end-to-end; accessibility checks pass.
-PHASE 36: Security Hardening & Penetration Testing
+PHASE 36: Security Hardening & Penetration Testing [NEXT]
 
 Goal: Zero open critical/high vulnerabilities. PDF refs: Sections 18, 19, 47, 39 (Phase 9). Build:
 

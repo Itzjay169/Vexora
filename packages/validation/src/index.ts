@@ -1500,6 +1500,76 @@ export const FairPlayPledgeSchema = z.object({
 });
 export type FairPlayPledgeInput = z.infer<typeof FairPlayPledgeSchema>;
 
+// ─── Phase 35: Privacy, Compliance, Localisation & Accessibility Schemas ─────
+
+export const ConsentType = z.enum([
+  'ANALYTICS',
+  'MARKETING_NOTIFICATIONS',
+  'LOCATION_TELEMETRY',
+  'MATCH_NOTIFICATIONS',
+  'THIRD_PARTY_SHARING',
+]);
+export type ConsentType = z.infer<typeof ConsentType>;
+
+export const UserConsentUpdateSchema = z.object({
+  consent_type: ConsentType,
+  is_granted: z.boolean(),
+});
+export type UserConsentUpdateInput = z.infer<typeof UserConsentUpdateSchema>;
+
+export const GuardianConsentSubmitSchema = z.object({
+  minor_dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD'),
+  guardian_name: z.string().min(2).max(150),
+  guardian_email: z.string().email(),
+  guardian_phone: z.string().min(10).max(20),
+});
+export type GuardianConsentSubmitInput = z.infer<typeof GuardianConsentSubmitSchema>;
+
+export const DataSubjectRequestType = z.enum([
+  'EXPORT_DATA',
+  'CORRECT_DATA',
+  'DELETE_ACCOUNT',
+  'RESTRICT_PROCESSING',
+]);
+export type DataSubjectRequestType = z.infer<typeof DataSubjectRequestType>;
+
+export const DataSubjectRequestCreateSchema = z.object({
+  request_type: DataSubjectRequestType,
+  metadata: z.record(z.any()).default({}),
+});
+export type DataSubjectRequestCreateInput = z.infer<typeof DataSubjectRequestCreateSchema>;
+
+export const DataCorrectionSchema = z.object({
+  field_to_correct: z.enum(['DISPLAY_NAME', 'IN_GAME_UID', 'BIO']),
+  new_value: z.string().min(1).max(500),
+});
+export type DataCorrectionInput = z.infer<typeof DataCorrectionSchema>;
+
+export const StatutoryTakedownLegalBasis = z.enum([
+  'RULE_3_2_B_IMPERSONATION_SEXUAL',
+  'RULE_3_1_D_COURT_ORDER',
+  'COPYRIGHT_INFRINGEMENT',
+  'DEFAMATION_HARASSMENT',
+]);
+export type StatutoryTakedownLegalBasis = z.infer<typeof StatutoryTakedownLegalBasis>;
+
+export const StatutoryTakedownCreateSchema = z.object({
+  legal_basis: StatutoryTakedownLegalBasis,
+  complainant_name: z.string().min(2).max(150),
+  complainant_email: z.string().email(),
+  targeted_content: z.object({
+    content_type: z.enum(['LOBBY_CHAT', 'PROFILE_AVATAR', 'TOURNAMENT_BANNER', 'MATCH_EVIDENCE']),
+    content_id: z.string().min(1),
+    infringing_url: z.string().optional(),
+    description: z.string().min(10).max(2000),
+  }),
+});
+export type StatutoryTakedownCreateInput = z.infer<typeof StatutoryTakedownCreateSchema>;
+
+export const SupportedLocale = z.enum(['en', 'hi', 'or']);
+export type SupportedLocale = z.infer<typeof SupportedLocale>;
+
+
 
 
 

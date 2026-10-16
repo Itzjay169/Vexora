@@ -1,10 +1,10 @@
 # Vexora Esports Tournament Platform - Engineering Guide
 
 ## Current Status & Phase Tracking
-- **Current Phase**: **Phase 35: Privacy, Compliance, Localisation & Accessibility**
-- **Status**: **Phase 34 (Extended Features) Completed — Ready for Phase 35**
+- **Current Phase**: **Phase 36: Security Hardening & Penetration Testing**
+- **Status**: **Phase 35 (Privacy, Compliance, Localisation & Accessibility) Completed — Ready for Phase 36**
 - **Decision Recorded**: **v1 Public Launch = 100% FREE Tournaments Only**
-- **Next Phase**: **Phase 35: Privacy, Compliance, Localisation & Accessibility**
+- **Next Phase**: **Phase 36: Security Hardening & Penetration Testing**
 
 ---
 
@@ -61,6 +61,7 @@ vexora/
 │       ├── achievements/ # Gamification & badges
 │       ├── risk/         # Anomaly signals & anti-abuse engine
 │       ├── webhooks/     # Signed provider webhooks with replay protection
+│       ├── compliance/   # DPDP Act 2023, DSR workflows, IT Rules takedowns, localisation
 │       └── common/       # Database pool, auth middleware, error handler
 ├── packages/
 │   ├── shared-types/     # Shared TypeScript contracts and domain models
