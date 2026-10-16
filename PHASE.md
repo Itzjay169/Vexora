@@ -254,13 +254,13 @@ FCM topics + device targeting; preferences per category, quiet hours, mandatory 
 In-app inbox; deep links to match/tournament/dispute; email for security events.
 Organiser announcement channel with moderation; maintenance banner. MCP: Firebase, Developer Knowledge (notification permissions/channels), Dart MCP, Context7, Playwright. Security gate: No balances, KYC, or room codes in push payloads; send IDs and fetch securely. Exit: Notification received on Android and iOS test devices; preferences honoured.
 PART I: ANALYTICS, RETENTION & SUPPORT (Phases 31-33)
-PHASE 31: Analytics & Dashboards [NEXT]
+PHASE 31: Analytics & Dashboards [COMPLETED]
 
 Goal: Insight for players, organisers, admins. PDF refs: Sections 22, 39 (Phase 8). Build:
 
 Player, organiser, admin analytics per Section 22; materialised views/reporting tables refreshed by workers (no heavy analytics on primary tables during live events); EXPLAIN every dashboard query; read-replica readiness.
 Firebase Analytics event plan (no personal data in names); consent honoured; CSV/PDF exports under role control, masked and logged. MCP: Stitch, Postgres, Dart MCP, Playwright, Firebase, Context7. Security gate: Exports masked; retention applied to event data. Exit: Every metric has a documented definition and a test against known data.
-PHASE 32: Achievements, Gamification & Retention
+PHASE 32: Achievements, Gamification & Retention [NEXT]
 
 Goal: Fair-play-focused engagement. PDF refs: Sections 41, 42. Build:
 

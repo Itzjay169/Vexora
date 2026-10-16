@@ -34,6 +34,7 @@ import { searchRouter } from './search/search.routes.js';
 import { ratingsRouter } from './ratings/ratings.routes.js';
 import { paymentsRouter } from './payments/payments.routes.js';
 import { realtimeRouter } from './realtime/realtime.routes.js';
+import { analyticsRouter } from './analytics/analytics.routes.js';
 import { setupWebSocketServer } from './common/websocket.js';
 import { healthRouter } from './common/health.js';
 
@@ -108,6 +109,7 @@ app.use('/api/v1/search',         searchRouter);
 app.use('/api/v1/ratings',        ratingsRouter);
 app.use('/api/v1/payments',       paymentsRouter);
 app.use('/api/v1/realtime',       realtimeRouter);
+app.use('/api/v1/analytics',      analyticsRouter);
 
 // ─── OpenAPI Spec Endpoint ──────────────────────────────────────────────
 app.get('/api/v1/docs/openapi.json', (_req, res) => {

@@ -1260,7 +1260,42 @@ export const SystemBannerSchema = z.object({
 });
 export type SystemBannerInput = z.infer<typeof SystemBannerSchema>;
 
+// ─── Phase 31: Analytics & Dashboards Schemas ───────────────────────────────
 
+export const AnalyticsMetricCategory = z.enum(['PLATFORM', 'PLAYER', 'ORGANISER', 'GAME']);
+export type AnalyticsMetricCategory = z.infer<typeof AnalyticsMetricCategory>;
+
+export const AnalyticsExportType = z.enum(['PLAYER_STATS', 'ORGANISER_STATS', 'PLATFORM_DAILY', 'GAME_POPULARITY']);
+export type AnalyticsExportType = z.infer<typeof AnalyticsExportType>;
+
+export const AnalyticsExportFormat = z.enum(['CSV', 'PDF', 'JSON']);
+export type AnalyticsExportFormat = z.infer<typeof AnalyticsExportFormat>;
+
+export const MaterialisedViewName = z.enum([
+  'mv_player_stats', 'mv_organiser_stats', 'mv_platform_daily_stats', 'mv_game_popularity',
+]);
+export type MaterialisedViewName = z.infer<typeof MaterialisedViewName>;
+
+/** Analytics export request schema */
+export const AnalyticsExportRequestSchema = z.object({
+  reportName: z.string().min(3, 'Report name must be at least 3 characters').max(200),
+  exportType: AnalyticsExportType,
+  format: AnalyticsExportFormat.default('CSV'),
+  filters: z.record(z.any()).default({}),
+});
+export type AnalyticsExportRequestInput = z.infer<typeof AnalyticsExportRequestSchema>;
+
+/** Analytics date range query schema */
+export const AnalyticsDateRangeSchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).default(30),
+});
+export type AnalyticsDateRangeInput = z.infer<typeof AnalyticsDateRangeSchema>;
+
+/** Materialised view refresh request schema */
+export const ViewRefreshRequestSchema = z.object({
+  viewName: MaterialisedViewName,
+});
+export type ViewRefreshRequestInput = z.infer<typeof ViewRefreshRequestSchema>;
 
 
 
