@@ -1,76 +1,152 @@
 import { Router } from 'express';
-import { authenticate } from '../common/auth.middleware.js';
+import { authenticate, authorize } from '../common/auth.middleware.js';
 import { AppError } from '../common/errorHandler.js';
-import { query } from '../common/database.js';
 import { parsePagination, paginatedResponse } from '../common/pagination.js';
+import { SupportService } from './support.service.js';
+import {
+  CreateTicketSchema,
+  TicketReplySchema,
+  TicketEscalateSchema,
+  TicketAssignSchema,
+  TicketStatusUpdateSchema,
+  CsatSurveySchema,
+  CannedReplySchema,
+} from '../../../packages/validation/src/index.ts';
 import { z } from 'zod';
 
 export const supportRouter = Router();
 
-// All support endpoints require auth
+// All support endpoints require authentication
 supportRouter.use(authenticate);
 
-// ─── Validation Schemas ──────────────────────────────────────────────────
-const createTicketSchema = z.object({
-  category: z.enum(['ACCOUNT', 'PAYMENT', 'TOURNAMENT', 'TECHNICAL', 'REPORT_BUG', 'OTHER']),
-  subject: z.string().min(5).max(200),
-  description: z.string().min(10).max(5000),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM'),
-});
-
-const replySchema = z.object({
-  message: z.string().min(1).max(5000),
-});
-
-// ─── GET / — List user's support tickets ─────────────────────────────────
-supportRouter.get('/', async (req, res, next) => {
+// ─── 1. List Tickets (GET / and GET /tickets) ────────────────────────────────
+async function handleListTickets(req, res, next) {
   try {
     const { cursor, limit } = parsePagination(req.query);
-    const status = req.query.status;
+    const { status, category, priority, assignedTo, escalatedTo, breachedOnly } = req.query;
 
-    let whereClause = 'WHERE t.user_id = $1';
-    const params = [req.user.id];
+    const result = await SupportService.listTickets({
+      userId: req.user.id,
+      role: req.user.role,
+      status,
+      category,
+      priority,
+      assignedTo,
+      escalatedTo,
+      breachedOnly: breachedOnly === 'true',
+      cursor,
+      limit,
+    });
 
-    if (status) {
-      params.push(status.toUpperCase());
-      whereClause += ` AND t.status = $${params.length}`;
-    }
+    res.json({
+      success: true,
+      data: result.items,
+      pagination: {
+        hasMore: result.hasMore,
+        nextCursor: result.nextCursor,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
 
-    if (cursor) {
-      params.push(cursor.ts, cursor.id);
-      whereClause += ` AND (t.created_at, t.id) < ($${params.length - 1}, $${params.length})`;
-    }
+supportRouter.get('/', handleListTickets);
+supportRouter.get('/tickets', handleListTickets);
 
-    params.push(limit + 1);
+// ─── 2. Create Ticket (POST / and POST /tickets) ─────────────────────────────
+async function handleCreateTicket(req, res, next) {
+  try {
+    const data = CreateTicketSchema.parse(req.body);
 
-    const result = await query(
-      `SELECT t.id, t.category, t.subject, t.priority, t.status, t.created_at, t.updated_at
-       FROM support_tickets t
-       ${whereClause}
-       ORDER BY t.created_at DESC
-       LIMIT $${params.length}`,
-      params
+    const ticket = await SupportService.createTicket({
+      userId: req.user.id,
+      category: data.category,
+      subject: data.subject,
+      description: data.description,
+      priority: data.priority,
+      relatedEntityType: data.relatedEntityType,
+      relatedEntityId: data.relatedEntityId,
+      attachments: data.attachments,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Support ticket ${ticket.ticket_number} created with active SLA tracking`,
+      data: ticket,
+    });
+  } catch (err) {
+    next(err instanceof z.ZodError
+      ? new AppError('Validation failed', 400, 'VALIDATION_ERROR', err.errors)
+      : err
     );
+  }
+}
 
-    res.json({ success: true, ...paginatedResponse(result.rows, limit) });
+supportRouter.post('/', handleCreateTicket);
+supportRouter.post('/tickets', handleCreateTicket);
+
+// ─── 3. SLA Breach Alerts Endpoints ──────────────────────────────────────────
+// List SLA breach alerts
+supportRouter.get('/tickets/breaches', authorize('ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT', 'MODERATOR', 'FINANCE'), async (req, res, next) => {
+  try {
+    const acknowledged = req.query.acknowledged === 'true';
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const alerts = await SupportService.listSlaBreachAlerts({ acknowledged, limit });
+    res.json({ success: true, count: alerts.length, data: alerts });
   } catch (err) {
     next(err);
   }
 });
 
-// ─── POST / — Create a support ticket ────────────────────────────────────
-supportRouter.post('/', async (req, res, next) => {
+// Trigger SLA breach check (worker / cron endpoint)
+supportRouter.post('/tickets/breaches/check', authorize('ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT'), async (_req, res, next) => {
   try {
-    const data = createTicketSchema.parse(req.body);
+    const alerts = await SupportService.checkSlaBreaches();
+    res.json({
+      success: true,
+      message: `SLA breach check completed: ${alerts.length} new breaches identified`,
+      alertsGenerated: alerts.length,
+      data: alerts,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
-    const result = await query(
-      `INSERT INTO support_tickets (user_id, category, subject, description, priority, status)
-       VALUES ($1, $2, $3, $4, $5, 'OPEN')
-       RETURNING *`,
-      [req.user.id, data.category, data.subject, data.description, data.priority]
-    );
+// Acknowledge SLA breach alert
+supportRouter.post('/tickets/breaches/:id/ack', authorize('ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT', 'FINANCE'), async (req, res, next) => {
+  try {
+    const alert = await SupportService.acknowledgeSlaAlert(req.params.id, req.user.id);
+    res.json({
+      success: true,
+      message: 'SLA breach alert acknowledged',
+      data: alert,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
-    res.status(201).json({ success: true, data: result.rows[0] });
+// ─── 4. Canned Replies Endpoints ─────────────────────────────────────────────
+supportRouter.get('/canned-replies', async (req, res, next) => {
+  try {
+    const { category, activeOnly } = req.query;
+    const replies = await SupportService.getCannedReplies({
+      category,
+      activeOnly: activeOnly !== 'false',
+    });
+    res.json({ success: true, count: replies.length, data: replies });
+  } catch (err) {
+    next(err);
+  }
+});
+
+supportRouter.post('/canned-replies', authorize('ADMIN', 'SUPER_ADMIN'), async (req, res, next) => {
+  try {
+    const data = CannedReplySchema.parse(req.body);
+    const reply = await SupportService.createCannedReply(req.user, data);
+    res.status(201).json({ success: true, data: reply });
   } catch (err) {
     next(err instanceof z.ZodError
       ? new AppError('Validation failed', 400, 'VALIDATION_ERROR', err.errors)
@@ -79,67 +155,115 @@ supportRouter.post('/', async (req, res, next) => {
   }
 });
 
-// ─── GET /:id — Get ticket details with replies ──────────────────────────
-supportRouter.get('/:id', async (req, res, next) => {
+// ─── 5. Security Gate: Limited User Context for Support ──────────────────────
+supportRouter.get('/users/:userId/context', authorize('ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT', 'MODERATOR', 'FINANCE'), async (req, res, next) => {
   try {
-    const ticket = await query(
-      `SELECT * FROM support_tickets WHERE id = $1 AND user_id = $2`,
-      [req.params.id, req.user.id]
-    );
-
-    if (ticket.rows.length === 0) {
-      throw new AppError('Ticket not found', 404, 'TICKET_NOT_FOUND');
-    }
-
-    const replies = await query(
-      `SELECT id, sender_role, message, created_at
-       FROM support_replies
-       WHERE ticket_id = $1
-       ORDER BY created_at ASC`,
-      [req.params.id]
-    );
-
-    res.json({
-      success: true,
-      data: { ...ticket.rows[0], replies: replies.rows },
-    });
+    const context = await SupportService.getUserContextForSupport(req.params.userId, req.user.role);
+    res.json({ success: true, data: context });
   } catch (err) {
     next(err);
   }
 });
 
-// ─── POST /:id/reply — Add a reply to a ticket ──────────────────────────
-supportRouter.post('/:id/reply', async (req, res, next) => {
+// ─── 6. Single Ticket Operations ─────────────────────────────────────────────
+// Get ticket details
+async function handleGetTicket(req, res, next) {
   try {
-    const data = replySchema.parse(req.body);
+    const details = await SupportService.getTicketDetails(req.params.id, req.user);
+    res.json({ success: true, data: details });
+  } catch (err) {
+    next(err);
+  }
+}
 
-    // Verify ticket belongs to user and is open
-    const ticket = await query(
-      `SELECT id, status FROM support_tickets WHERE id = $1 AND user_id = $2`,
-      [req.params.id, req.user.id]
+supportRouter.get('/:id', handleGetTicket);
+supportRouter.get('/tickets/:id', handleGetTicket);
+
+// Reply or add internal note
+async function handleReplyTicket(req, res, next) {
+  try {
+    const data = TicketReplySchema.parse(req.body);
+    const reply = await SupportService.addReply(req.params.id, req.user, data);
+    res.status(201).json({
+      success: true,
+      message: data.isInternal ? 'Internal staff note recorded' : 'Reply sent to ticket',
+      data: reply,
+    });
+  } catch (err) {
+    next(err instanceof z.ZodError
+      ? new AppError('Validation failed', 400, 'VALIDATION_ERROR', err.errors)
+      : err
     );
+  }
+}
 
-    if (ticket.rows.length === 0) {
-      throw new AppError('Ticket not found', 404, 'TICKET_NOT_FOUND');
-    }
-    if (ticket.rows[0].status === 'CLOSED') {
-      throw new AppError('Cannot reply to a closed ticket', 400, 'TICKET_CLOSED');
-    }
+supportRouter.post('/:id/reply', handleReplyTicket);
+supportRouter.post('/tickets/:id/reply', handleReplyTicket);
 
-    const result = await query(
-      `INSERT INTO support_replies (ticket_id, sender_id, sender_role, message)
-       VALUES ($1, $2, 'USER', $3)
-       RETURNING *`,
-      [req.params.id, req.user.id, data.message]
+// Escalate ticket to finance / moderation
+supportRouter.post('/tickets/:id/escalate', authorize('ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT', 'MODERATOR'), async (req, res, next) => {
+  try {
+    const data = TicketEscalateSchema.parse(req.body);
+    const escalatedTicket = await SupportService.escalateTicket(req.params.id, req.user, data);
+    res.json({
+      success: true,
+      message: `Ticket successfully escalated to ${data.escalateTo}`,
+      data: escalatedTicket,
+    });
+  } catch (err) {
+    next(err instanceof z.ZodError
+      ? new AppError('Validation failed', 400, 'VALIDATION_ERROR', err.errors)
+      : err
     );
+  }
+});
 
-    // Re-open if it was resolved
-    await query(
-      `UPDATE support_tickets SET status = 'OPEN', updated_at = NOW() WHERE id = $1 AND status = 'RESOLVED'`,
-      [req.params.id]
+// Assign ticket
+supportRouter.post('/tickets/:id/assign', authorize('ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT'), async (req, res, next) => {
+  try {
+    const data = TicketAssignSchema.parse(req.body);
+    const assigned = await SupportService.assignTicket(req.params.id, req.user, data);
+    res.json({
+      success: true,
+      message: `Ticket successfully assigned`,
+      data: assigned,
+    });
+  } catch (err) {
+    next(err instanceof z.ZodError
+      ? new AppError('Validation failed', 400, 'VALIDATION_ERROR', err.errors)
+      : err
     );
+  }
+});
 
-    res.status(201).json({ success: true, data: result.rows[0] });
+// Update status (RESOLVED, CLOSED, etc.)
+supportRouter.patch('/tickets/:id/status', authorize('ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT', 'MODERATOR', 'FINANCE'), async (req, res, next) => {
+  try {
+    const data = TicketStatusUpdateSchema.parse(req.body);
+    const updated = await SupportService.updateTicketStatus(req.params.id, req.user, data);
+    res.json({
+      success: true,
+      message: `Ticket status updated to ${data.status}`,
+      data: updated,
+    });
+  } catch (err) {
+    next(err instanceof z.ZodError
+      ? new AppError('Validation failed', 400, 'VALIDATION_ERROR', err.errors)
+      : err
+    );
+  }
+});
+
+// Submit CSAT survey
+supportRouter.post('/tickets/:id/csat', async (req, res, next) => {
+  try {
+    const data = CsatSurveySchema.parse(req.body);
+    const survey = await SupportService.submitCsatSurvey(req.params.id, req.user.id, data);
+    res.status(201).json({
+      success: true,
+      message: 'Thank you for your feedback! CSAT survey recorded.',
+      data: survey,
+    });
   } catch (err) {
     next(err instanceof z.ZodError
       ? new AppError('Validation failed', 400, 'VALIDATION_ERROR', err.errors)

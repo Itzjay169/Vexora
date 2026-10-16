@@ -80,6 +80,12 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['SUPER_ADMIN', 'ADMIN'],
   },
   {
+    name: 'Support Desk',
+    href: '/support',
+    icon: '🎧',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'MODERATOR', 'FINANCE', 'AUDITOR'],
+  },
+  {
     name: 'Game Management',
     href: '/games',
     icon: '🎮',

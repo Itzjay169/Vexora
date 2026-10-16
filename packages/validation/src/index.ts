@@ -1337,4 +1337,89 @@ export const AchievementCreateSchema = z.object({
 });
 export type AchievementCreateInput = z.infer<typeof AchievementCreateSchema>;
 
+// ─── Phase 33: Support Desk & Ticketing Schemas ──────────────────────────────
+
+export const TicketCategory = z.enum([
+  'ACCOUNT',
+  'TOURNAMENT',
+  'MATCH',
+  'PAYMENT',
+  'WALLET',
+  'PAYOUT',
+  'SAFETY',
+  'ORGANISER',
+]);
+export type TicketCategory = z.infer<typeof TicketCategory>;
+
+export const TicketPriority = z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL', 'URGENT']);
+export type TicketPriority = z.infer<typeof TicketPriority>;
+
+export const TicketStatus = z.enum([
+  'OPEN',
+  'IN_PROGRESS',
+  'WAITING_USER',
+  'ESCALATED',
+  'RESOLVED',
+  'CLOSED',
+]);
+export type TicketStatus = z.infer<typeof TicketStatus>;
+
+export const EscalationDepartment = z.enum(['FINANCE', 'MODERATION', 'LEGAL', 'SUPER_ADMIN']);
+export type EscalationDepartment = z.infer<typeof EscalationDepartment>;
+
+export const CreateTicketSchema = z.object({
+  category: TicketCategory,
+  subject: z.string().min(5).max(200),
+  description: z.string().min(10).max(5000),
+  priority: TicketPriority.default('MEDIUM'),
+  relatedEntityType: z.enum(['TOURNAMENT', 'MATCH', 'PAYMENT', 'PAYOUT', 'USER', 'ORGANISER']).optional(),
+  relatedEntityId: z.string().uuid().optional(),
+  attachments: z.array(z.string().url()).max(5).default([]),
+});
+export type CreateTicketInput = z.infer<typeof CreateTicketSchema>;
+
+export const TicketReplySchema = z.object({
+  message: z.string().min(1).max(5000),
+  isInternal: z.boolean().default(false),
+  attachments: z.array(z.string().url()).max(5).default([]),
+  cannedReplyId: z.string().uuid().optional(),
+});
+export type TicketReplyInput = z.infer<typeof TicketReplySchema>;
+
+export const TicketEscalateSchema = z.object({
+  escalateTo: EscalationDepartment,
+  reason: z.string().min(5).max(1000),
+  priority: TicketPriority.optional(),
+});
+export type TicketEscalateInput = z.infer<typeof TicketEscalateSchema>;
+
+export const CannedReplySchema = z.object({
+  category: TicketCategory,
+  title: z.string().min(3).max(150),
+  shortcutCode: z.string().min(2).max(50).regex(/^[a-z0-9-_]+$/, 'Must be lowercase alphanumeric, dash, or underscore'),
+  body: z.string().min(5).max(5000),
+  isActive: z.boolean().default(true),
+});
+export type CannedReplyInput = z.infer<typeof CannedReplySchema>;
+
+export const CsatSurveySchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  satisfied: z.boolean(),
+  feedback: z.string().max(1000).optional(),
+});
+export type CsatSurveyInput = z.infer<typeof CsatSurveySchema>;
+
+export const TicketAssignSchema = z.object({
+  assignedTo: z.string().uuid(),
+  notes: z.string().max(500).optional(),
+});
+export type TicketAssignInput = z.infer<typeof TicketAssignSchema>;
+
+export const TicketStatusUpdateSchema = z.object({
+  status: TicketStatus,
+  resolutionNotes: z.string().max(2000).optional(),
+});
+export type TicketStatusUpdateInput = z.infer<typeof TicketStatusUpdateSchema>;
+
+
 

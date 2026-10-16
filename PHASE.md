@@ -266,14 +266,14 @@ Goal: Fair-play-focused engagement. PDF refs: Sections 41, 42. Build:
 
 achievements/user_achievements; badge engine awarding only from verified, finalised results; seasons snapshots; streaks/missions (participation and fair play, not spend); titles and profile frames (cosmetic); friends/region/team boards.
 Responsible-design rules: no dark patterns, clear age restrictions, self-exclusion/limit tools. MCP: Stitch, Dart MCP, Postgres, Playwright. Security gate: Badges cannot be granted by client calls. Exit: Badges show source tournament and date; no pay-to-win items.
-PHASE 33: Support Desk [NEXT]
+PHASE 33: Support Desk [COMPLETED]
 
 Goal: Ticketing instead of ad-hoc chat. PDF refs: Sections 23, 39 (Phase 8). Build:
 
 support_tickets/ticket_events: ticket ID, category (Account, Tournament, Match, Payment, Wallet, Payout, Safety, Organiser), priority, SLA, owner, audit history; canned replies; escalation to finance/moderation; CSAT survey; SLA breach alerts (first response 4h, safety 1h).
 Support Agent role limits (no KYC, no balance edits). MCP: Stitch, Playwright, Postgres, Dart MCP. Security gate: Support sees only limited user context. Exit: SLAs visible; breach alerts work.
 PART J: EXTENDED FEATURES (Phase 34)
-PHASE 34: Vexora Extended Features
+PHASE 34: Vexora Extended Features [NEXT]
 
 Goal: Add Section 41 extras without touching MVP stability (each behind a feature flag). PDF refs: Sections 41, 43. Build (in priority order, one PR each):
 
