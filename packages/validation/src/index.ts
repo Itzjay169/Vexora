@@ -1136,6 +1136,28 @@ export const ExportFinancialReportSchema = z.object({
 );
 export type ExportFinancialReportInput = z.infer<typeof ExportFinancialReportSchema>;
 
+// ─── Phase 29: Real-Time Gateway & WebSocket Schemas ───────────────────────
+
+export const RealtimeChannelAuthorizeSchema = z.object({
+  channel: z.string().min(3, 'Channel must be at least 3 characters').max(100),
+});
+export type RealtimeChannelAuthorizeInput = z.infer<typeof RealtimeChannelAuthorizeSchema>;
+
+export const RealtimeReplayRequestSchema = z.object({
+  channel: z.string().min(3).max(100),
+  lastSequence: z.number().int().min(0).default(0),
+  limit: z.number().int().min(1).max(500).default(100),
+});
+export type RealtimeReplayRequestInput = z.infer<typeof RealtimeReplayRequestSchema>;
+
+export const RealtimeBroadcastSchema = z.object({
+  channel: z.string().min(3).max(100),
+  eventType: z.string().min(3).max(100),
+  payload: z.record(z.any()).default({}),
+});
+export type RealtimeBroadcastInput = z.infer<typeof RealtimeBroadcastSchema>;
+
+
 
 
 

@@ -1,10 +1,10 @@
 # Vexora Esports Tournament Platform - Engineering Guide
 
 ## Current Status & Phase Tracking
-- **Current Phase**: **Phase 29: Real-Time Gateway (WebSockets)**
-- **Status**: **Phase 28 Completed — Ready for Phase 29 (Real-Time Gateway & Live Events)**
+- **Current Phase**: **Phase 30: Push Notifications, Inbox & Announcements**
+- **Status**: **Phase 29 Completed — Ready for Phase 30 (Push Notifications, Inbox & Announcements)**
 - **Decision Recorded**: **v1 Public Launch = 100% FREE Tournaments Only**
-- **Next Phase**: **Phase 29: Real-Time Gateway (WebSockets)**
+- **Next Phase**: **Phase 30: Push Notifications, Inbox & Announcements**
 
 ---
 
@@ -775,4 +775,31 @@ vexora/
     - Security Gate: Payouts marked paid only with valid bank UTR reference.
     - Security Gate: Financial report exports stamped with cryptographic watermark and SHA-256 integrity hash.
     - 548/548 monorepo unit and domain tests passing (+19 Phase 28 tests in `tests/unit/phase28-payouts-reconciliation.test.js`).
+    - Pre-commit secret scan passing with 0 secrets detected.
+- **Phase 29: Real-Time Gateway (WebSockets)**
+  - **Database Migration 022**: `infra/migrations/022_realtime_outbox_and_events.sql`:
+    - `event_outbox`: Transactional outbox table ensuring events publish only after database commit, with monotonic sequence numbers (`sequence_num BIGSERIAL`), channel lookups, and immutability trigger (`prevent_outbox_payload_tampering`).
+    - `realtime_channel_subscriptions`: Audit log of connected sockets, channel authorizations, and disconnect timestamps.
+  - **Backend Services & Gateway**:
+    - `backend/src/realtime/realtime.service.js`:
+      - Section 14 Event Catalogue implementation (`tournament.registration`, `tournament.status_change`, `match.start`, `match.result_submitted`, `match.result_finalised`, `dispute.opened`, `dispute.updated`, `wallet.transaction`, `payout.status`, `announcement.broadcast`, `leaderboard.update`).
+      - Server-side channel authorization security gate: Public channels open to all; Private user wallet channel (`wallet:{userId}`) strictly restricted to the authenticated user or finance/super-admin (`FORBIDDEN: User cannot subscribe to another user wallet channel`); Admin channels (`admin:*`) restricted to staff.
+      - Monotonic sequence numbers on every outbox event.
+      - Reconnect & Missed-Event Replay: Queries events where `channel = $1 AND sequence_num > $2 ORDER BY sequence_num ASC`.
+      - Per-connection rate limiting (30 msgs/min per socket) and 64KB payload bounds.
+    - `backend/src/common/websocket.js`: Upgraded WebSocket gateway with token query handshake, server-side channel authorization on subscribe, outbox event publishing, and heartbeat ping/pong every 30s.
+    - `backend/src/realtime/realtime.routes.js`: Mounted at `/api/v1/realtime`: `GET /status`, `POST /check-permission`, `POST /replay`, `POST /broadcast`.
+  - **Validation Schemas Added**:
+    - `packages/validation/src/index.ts`: `RealtimeChannelAuthorizeSchema`, `RealtimeReplayRequestSchema`, `RealtimeBroadcastSchema`.
+  - **Flutter Mobile**:
+    - `apps/mobile/lib/screens/live_tournament_board_screen.dart`: Live standings table, alive/eliminated pills, sequence number counter, auto-reconnect logic, and degraded read-only fallback mode.
+    - Verified with official Dart MCP (`dart-mcp-server` `analyze_files`): 0 errors, 0 warnings.
+  - **Admin Desktop & Web Consoles**:
+    - `apps/admin/src/app/realtime/page.tsx`: Real-Time Gateway console with live event stream, sequence numbers, channel authorization rules, outbox broadcast trigger, and client reconnect replay simulator. Integrated into `AdminShell.tsx` navigation.
+    - `apps/web/src/app/live/page.tsx`: Web portal live tournament board and leaderboard with WebSocket connection pill, sequence tracker, live kill feed, and Degraded Read-Only banner when disconnected.
+  - **Security Gate & Testing**:
+    - Security Gate: User cannot subscribe to another user's wallet or unauthorized private channel (tested and verified).
+    - Security Gate: Per-connection message rate limits (30 msg/min) and payload limits enforced.
+    - Security Gate: Monotonic sequence numbers recorded in transactional outbox for audit and replay.
+    - 567/567 monorepo unit and domain tests passing (+19 Phase 29 tests in `tests/unit/phase29-realtime-gateway.test.js`).
     - Pre-commit secret scan passing with 0 secrets detected.

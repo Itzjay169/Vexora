@@ -239,14 +239,14 @@ Payout queue: requested -> under review -> approved -> processing -> paid/failed
 Payout marked paid only after provider/bank reconciliation.
 Daily reconciliation job (ledger vs provider vs payouts), discrepancy dashboard, alerts; finance reports with watermarked, logged exports. MCP: Postgres, Playwright (two-admin payout approval), Context7, Dart MCP, GitHub. Security gate: Creator cannot approve own payout; zero unexplained differences on test data. Exit: finish -> reward -> payout request -> reconcile works; legal sign-off recorded per enabled region or wallet stays in free/test mode.
 PART H: REAL-TIME & NOTIFICATIONS (Phases 29-30)
-PHASE 29: Real-Time Gateway (WebSockets) [NEXT]
+PHASE 29: Real-Time Gateway (WebSockets) [COMPLETED]
 
 Goal: Live events, safely. PDF refs: Sections 14, 39 (Phase 7). Build:
 
 Socket.IO gateway: short-lived token auth, server-side per-channel authorisation, per-connection rate limits, payload limits, Redis pub/sub for horizontal scale.
 Event catalogue from Section 14 with sequence numbers, heartbeat, auto-reconnect, missed-event replay; outbox table so events publish only after DB commit.
 Live tournament board and live leaderboard (mobile + web); degraded read-only mode. MCP: Context7 (Socket.IO adapter, Redis), Dart MCP (reconnect logic, flaky-network tests), Playwright (two users see same update; unauthorised join denied), Postgres (outbox). Security gate: User cannot subscribe to another user's wallet or a private channel. Exit: Result finalisation updates leaderboard on two devices in seconds; replay verified.
-PHASE 30: Push Notifications, Inbox & Announcements
+PHASE 30: Push Notifications, Inbox & Announcements [NEXT]
 
 Goal: Reliable multi-channel communication. PDF refs: Sections 20, 39 (Phase 7). Build:
 
