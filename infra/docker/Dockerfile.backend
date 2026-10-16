@@ -1,0 +1,15 @@
+FROM node:20-alpine AS base
+
+WORKDIR /app
+
+COPY package*.json ./
+COPY backend/package*.json ./backend/
+COPY packages ./packages
+
+RUN npm install
+
+COPY backend ./backend
+
+EXPOSE 3000
+
+CMD ["node", "backend/src/index.js"]

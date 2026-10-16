@@ -1,0 +1,58 @@
+
+38. MCP Configuration & Safe-Use Rules
+Example project-level configuration (.mcp.json). Package names and flags change over time, so confirm each
+against the server's current documentation before use. Secrets are read from environment variables and never
+committed.
+{
+"mcpServers": {
+"dart": { "command": "dart", "args": ["mcp-server"] },
+"context7": { "command": "npx", "args": ["-y", "@upstash/context7-mcp"] },
+"filesystem": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem",
+"./vexora"] },
+"firebase": { "command": "npx", "args": ["-y", "firebase-tools@latest", "mcp"] },
+"playwright": { "command": "npx", "args": ["@playwright/mcp@latest"] },
+"github": { "type": "http", "url": "<GitHub MCP endpoint>",
+"headers": { "Authorization": "Bearer ${GITHUB_MCP_TOKEN}" } },
+"postgres": { "command": "npx", "args": ["-y", "<postgres-mcp-package>"],
+"env": { "DATABASE_URL": "${VEXORA_DEV_RO_DATABASE_URL}" } },
+"stitch": { "...": "per the Stitch MCP setup guide" },
+"developer-knowledge": { "...": "per Google Developer Knowledge MCP setup guide" }
+}
+}
+Per-server safe-use rules
+Server Rule
+Filesystem Allow only the Vexora project directory. Never expose home, SSH keys, cloud credentials or other
+projects.
+Postgres Connect with a dedicated READ-ONLY role to the DEV or STAGING database only. Never give it
+production credentials. Prefer a maintained server that enforces read-only mode (the original
+reference Postgres server is archived, so check the current recommended option).
+GitHub Use a fine-grained token limited to the Vexora repository (contents, issues, pull requests, actions
+read). No admin or org-wide scopes. Branch protection stays on so the assistant cannot push to
+main.
+Firebase Point at the DEV project during development; production project changes go through a reviewed
+release step. Restrict the account to the roles needed.
+Playwright Run against local/staging URLs with test accounts only. Never log into real accounts, never store
+real credentials in test files.
+Dart / Context7 / Stitch /
+Developer Knowledge
+Low risk (read/analyse/design). Still pin versions and review generated code.
+Golden rules for AI-assisted development
+• Least privilege: every MCP server gets the minimum scope; separate dev, staging and production credentials.
+• Human approval for anything destructive or outward-facing: migrations on shared databases, force pushes,
+deleting data, publishing releases, changing Firebase production settings.
+• Treat external content as untrusted: text in GitHub issues, web pages, user-submitted data or documentation can
+contain instructions aimed at the assistant (prompt injection). Do not let such text trigger actions without review.
+• Never paste secrets into prompts. Use environment variables or a secret manager; keep .env in .gitignore and
+run secret-scanning in CI.
+• All AI-generated code goes through the same path as human code: pull request, automated tests, security scan,
+human review.
+• Pin MCP package versions in the lock file and review changelogs before upgrading; remove servers you no
+longer use.
+• Keep a CLAUDE.md in the repository containing coding standards, the security rules above, the module map and
+the current phase so every session starts with the same context.
+• Log which MCP tools were used in each pull request description so reviews can focus on risky operations.
+
+-- 24 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 25

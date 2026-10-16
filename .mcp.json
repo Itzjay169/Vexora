@@ -1,0 +1,55 @@
+{
+  "mcpServers": {
+    "dart": {
+      "command": "dart",
+      "args": ["mcp-server"],
+      "description": "Official Dart/Flutter tooling for code analysis, lints, tests, format, and package management"
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "description": "Live documentation and library code examples fetching"
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./"],
+      "description": "Scoped read/write access to the Vexora project workspace"
+    },
+    "firebase": {
+      "command": "npx",
+      "args": ["-y", "firebase-tools@latest", "mcp"],
+      "description": "Firebase project management (Auth, FCM, App Check, Crashlytics, Remote Config)"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
+      "description": "Browser automation for end-to-end tests, visual regression, and accessibility checks"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_MCP_TOKEN}"
+      },
+      "description": "Repository automation: issues, pull requests, commits, and milestone tracking"
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "${VEXORA_DEV_RO_DATABASE_URL}"],
+      "env": {
+        "DATABASE_URL": "${VEXORA_DEV_RO_DATABASE_URL}"
+      },
+      "description": "Read-only development database schema and query plan inspection"
+    },
+    "stitch": {
+      "command": "npx",
+      "args": ["-y", "@stitch/mcp-server"],
+      "description": "AI UI design tool for screens, component tokens, and layout generation"
+    },
+    "developer-knowledge": {
+      "command": "npx",
+      "args": ["-y", "@google/developer-knowledge-mcp"],
+      "description": "Official Google developer documentation search"
+    }
+  }
+}

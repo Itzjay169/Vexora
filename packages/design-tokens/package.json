@@ -1,0 +1,8 @@
+{
+  "name": "@vexora/design-tokens",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "description": "Vexora Design Tokens for Web, Admin, and Flutter (WCAG AA Compliant)"
+}

@@ -1,0 +1,437 @@
+openapi: 3.0.3
+info:
+  title: Vexora Esports Tournament Platform API
+  description: >
+    Authoritative REST API specification for the Vexora Esports Tournament Platform (/v1).
+    Implements double-entry ledger security, idempotent mutations, cursor pagination, 
+    tamper-evident audit trails, and multi-tier role authorization.
+  version: 1.0.0
+  contact:
+    name: Vexora Engineering
+    email: api@vexora.gg
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Local Development Server
+  - url: https://api-dev.vexora.gg/v1
+    description: Cloud Development / Staging Gateway
+  - url: https://api.vexora.gg/v1
+    description: Production API Gateway
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Vexora access token (15-minute lifetime) issued after verifying Firebase ID token.
+    idempotencyKey:
+      type: apiKey
+      in: header
+      name: Idempotency-Key
+      description: Unique UUIDv4/v7 token required on all state-mutating POST/PATCH operations.
+
+  parameters:
+    CursorParam:
+      name: cursor
+      in: query
+      description: Base64-encoded pagination cursor for chronological traversal.
+      required: false
+      schema:
+        type: string
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of records to return (default 20, max 100).
+      required: false
+      schema:
+        type: integer
+        default: 20
+        maximum: 100
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: RESOURCE_NOT_FOUND
+            message:
+              type: string
+              example: The requested resource does not exist.
+            details:
+              type: object
+
+    PaginatedMeta:
+      type: object
+      required:
+        - hasMore
+      properties:
+        nextCursor:
+          type: string
+          nullable: true
+        hasMore:
+          type: boolean
+          example: true
+        totalCount:
+          type: integer
+          example: 120
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      summary: System Health and Liveness Probe
+      security: []
+      responses:
+        '200':
+          description: Service is healthy and database connection pool is active
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: "ok" }
+                  timestamp: { type: string, format: "date-time" }
+                  version: { type: string, example: "1.0.0" }
+
+  /auth/session:
+    post:
+      summary: Exchange Firebase ID Token for Vexora JWT and Rotating Refresh Token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idToken]
+              properties:
+                idToken: { type: string }
+                deviceFingerprint: { type: string }
+                platform: { type: string, enum: [android, ios, web] }
+      responses:
+        '200':
+          description: Session created; returns access token and secure session cookie
+        '401':
+          $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      summary: Refresh Access Token with Reuse Detection (Family Revocation)
+      security: []
+      responses:
+        '200':
+          description: Rotated access token issued
+        '401':
+          $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      summary: Revoke Active Session and Refresh Token
+      responses:
+        '204':
+          description: Session revoked successfully
+
+  /users/me:
+    get:
+      summary: Get Authenticated User Profile & Preferences
+      responses:
+        '200':
+          description: User profile details
+
+  /users/me/export-data:
+    post:
+      summary: Request DPDP Act 2023 Data Export Package
+      responses:
+        '202':
+          description: Export job queued
+
+  /games:
+    get:
+      summary: List Supported Esports Titles
+      security: []
+      responses:
+        '200':
+          description: List of games, active modes, and scoring schemas
+
+  /teams:
+    get:
+      summary: Search Teams by Game and Name
+      parameters:
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated team directory
+    post:
+      summary: Create New Esports Team
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Team created with caller as Captain
+
+  /organisers/apply:
+    post:
+      summary: Submit Verification Application for Organiser Status
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Application submitted for admin review queue
+
+  /tournaments:
+    get:
+      summary: Discover Tournaments with Multi-Filter
+      security: []
+      parameters:
+        - name: game
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: isFree
+          in: query
+          schema: { type: boolean }
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Filtered tournament listings
+    post:
+      summary: Create Tournament Draft (Verified Organisers Only)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Tournament created in DRAFT state
+
+  /tournaments/{id}/register:
+    post:
+      summary: Register Team or Solo Slot with Row-Lock Capacity Check
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Registration confirmed; required hold placed if applicable
+
+  /tournaments/{id}/check-in:
+    post:
+      summary: Confirm Tournament Check-in and Lock Roster
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Checked-in successfully
+
+  /matches/{id}:
+    get:
+      summary: Get Match Details, Lobby Status, and Room Credentials (Role Restricted)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Match details and room code if authorized
+
+  /results/{matchId}/submit:
+    post:
+      summary: Submit Match Results with Evidence File SHA-256 Hash
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Raw result recorded; dual-confirmation window initiated
+
+  /results/{matchId}/confirm:
+    post:
+      summary: Opposing Captain Confirmation of Match Results
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Results confirmed; scoring engine triggers leaderboard update
+
+  /leaderboards/{gameSlug}/{seasonId}:
+    get:
+      summary: Fetch Cached Leaderboard Standings
+      security: []
+      parameters:
+        - name: gameSlug
+          in: path
+          required: true
+          schema: { type: string }
+        - name: seasonId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Ranked leaderboard entries
+
+  /wallet/balance:
+    get:
+      summary: Get User's Available and Held Balances
+      responses:
+        '200':
+          description: Balance ledger summary
+
+  /wallet/ledger:
+    get:
+      summary: Get User's Historical Double-Entry Transactions
+      parameters:
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Paginated ledger history
+
+  /redeem:
+    post:
+      summary: Redeem Internal Voucher Code (HMAC Checked)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Code redeemed; CREDIT transaction posted to ledger
+
+  /payouts/request:
+    post:
+      summary: Submit Payout Settlement Request
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Payout request submitted to Maker-Checker queue
+
+  /reports:
+    post:
+      summary: Submit Conduct or Anti-Cheat Report with Evidence
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Report logged with case identifier
+
+  /disputes:
+    post:
+      summary: Open Match Dispute (Freezes Tournament Settlement)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Dispute opened; escrow frozen pending moderator adjudication
+
+  /notifications:
+    get:
+      summary: Fetch Durable In-App Notifications
+      parameters:
+        - $ref: '#/components/parameters/CursorParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: List of notifications
+
+  /support/tickets:
+    post:
+      summary: Create New Support Ticket with SLA Tracking
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '201':
+          description: Ticket created
+
+  /achievements:
+    get:
+      summary: List User Unlocked Badges & Achievements
+      responses:
+        '200':
+          description: List of verified badges
+
+  /devices:
+    get:
+      summary: List Active Registered Devices
+      responses:
+        '200':
+          description: User devices with trust indicators
+
+  /security/sessions:
+    get:
+      summary: List Active Login Sessions
+      responses:
+        '200':
+          description: Active sessions with IP hash and last seen time
+    delete:
+      summary: Revoke Specific Session (Force Logout)
+      responses:
+        '204':
+          description: Session terminated
+
+  /admin/metrics:
+    get:
+      summary: Platform Overview Analytics (Super Admin / Finance Role Required)
+      responses:
+        '200':
+          description: Aggregated active users, escrow liability, dispute counts
+
+  /admin/maker-checker/queue:
+    get:
+      summary: List Operations Awaiting Dual-Approval
+      responses:
+        '200':
+          description: Maker-checker pending queue
+
+  /admin/audit/verify:
+    get:
+      summary: Cryptographically Validate SHA-256 Audit Log Hash Chain
+      responses:
+        '200':
+          description: Audit chain status, unbroken links count, last Merkle checkpoint
+
+  /webhooks/{provider}:
+    post:
+      summary: Handle Inbound Payment and Auth Webhooks (Signature Protected)
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, enum: [razorpay, cashfree, firebase] }
+        - name: X-Webhook-Signature
+          in: header
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Webhook event processed and deduplicated

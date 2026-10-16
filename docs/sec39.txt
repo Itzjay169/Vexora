@@ -1,0 +1,413 @@
+
+39. Phase-by-Phase Build Plan
+Vexora is built in eleven phases (0-10). Each phase is a vertical slice that ends with working, tested, deployed
+software. Estimates assume a small team (1-3 developers) working with MCP-assisted tooling; adjust to your team
+size. Every phase follows the same loop:
+1. Plan : GitHub milestone + issues, update CLAUDE.md with the phase goal
+2. Design: Stitch screens + API/DB design (ADR for any big decision)
+3. Build : small branches -> pull requests (Dart MCP, Filesystem, Context7, Postgres)
+4. Test : unit + integration + Playwright E2E + security checks in CI
+5. Review: code review, security gate checklist, demo on staging
+6. Ship : merge, tag release, update docs and the changelog; retrospective
+Phase Name Est. Headline result
+0 Planning, setup & design 2-3 wks Approved spec, repo, MCP toolchain,
+design system
+1 Foundation: auth, users, roles, admin shell 3 wks Secure account system
+2 Games & teams 3 wks Player ecosystem
+3 Tournament MVP 4 wks Working tournament engine
+4 Results, evidence, scoring, leaderboards 3 wks Competitive workflow
+5 Trust: verification, reports, disputes, moderation 3 wks Safety layer
+6 Wallet, ledger, redeem codes, payments 4 wks Controlled credit system
+7 Real-time, push & live experience 2 wks Live tournaments
+8 Analytics, achievements & support desk 3 wks Performance intelligence
+9 Hardening: security, load, DR, store prep 3 wks Release candidate
+10 Pilot & controlled launch 3 wks+ Production launch
+Timeline. Total is roughly 32-36 weeks for a small team. Phases can overlap slightly (for example Stitch designs for
+Phase N+1 during Phase N), but a phase is not "done" until its exit criteria are met.
+PHASE 0 Planning, Setup & Design Est. 2-3 weeks
+Goal. Turn this blueprint into locked decisions, a clean repository, a working MCP toolchain and a Vexora design
+system.
+What to build
+• Answer every question in Section 31 and record decisions as ADRs; get the legal review started (Section 24).
+• Create the GitHub repository (monorepo), branch protection, issue templates, PR template, CODEOWNERS and
+the milestone board with one milestone per phase.
+• Scaffold the folder structure from Section 30; add CLAUDE.md, .mcp.json, .env.example, .gitignore and
+pre-commit hooks (formatting, secret scan).
+• Set up local development with Docker Compose: PostgreSQL, Redis, MinIO (S3-compatible), mail catcher.
+• Create the Firebase DEV and PROD projects (Auth, FCM, Crashlytics, Remote Config, App Check); register
+Android and iOS apps.
+• Create the Vexora brand and design system: logo, colours, typography, components, dark theme, motion rules
+(Section 44).
+• Draw the data model (ERD) and the first OpenAPI draft; write the threat model for auth, wallet and results.
+• Stand up CI (lint, test, build, dependency and secret scanning) even if tests are still empty.
+
+-- 25 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 26
+MCP servers used in this phase
+MCP server How it is used
+Filesystem Scaffold the monorepo, ADRs, docs and config files.
+GitHub Create repository settings, milestones, issues and the PR template; confirm branch protection.
+Context7 Check current setup guides for NestJS, Next.js, Flutter packages and the ORM before choosing
+versions.
+Stitch Generate first design directions for the Vexora brand, home, tournament card and admin overview.
+Developer Knowledge Read current Firebase project setup and Play Integrity/App Check guidance.
+Firebase Create/configure the dev project, register apps, enable phone and email authentication.
+Dart MCP Create the Flutter project, set lint rules, run first analysis and a smoke test.
+Postgres Connect read-only to the local dev database to confirm the connection and extensions.
+Playwright Install and run a smoke test against the placeholder web app.
+Security gate
+• MCP servers use least-privilege credentials (Section 38); no secrets in the repository.
+• Branch protection: PR required, status checks required, no force-push to main.
+• Threat model v1 written (auth, wallet, results, admin).
+Exit criteria (do not start the next phase until all are true)
+[ ] All Section 31 questions answered and recorded as ADRs.
+[ ] Repo, CI, Docker environment and MCP toolchain working for every team member.
+[ ] Design system v1 approved; legal review engaged.
+[ ] Phase 1 issues created and estimated.
+PHASE 1 Foundation: Auth, Users, Roles, Admin Shell Est. 3 weeks
+Goal. A secure account system with phone/email sign-in, roles, sessions and an empty-but-secure admin console.
+What to build
+• Backend: NestJS (or chosen framework) modular monolith, config module, structured logging, health endpoint,
+global validation and error format.
+• Database: migrations for users, user_roles, user_devices, user_sessions, mfa_factors, audit_logs, feature_flags;
+UUIDv7 keys.
+• Auth: Firebase Authentication (phone OTP + email + Google) on the client; backend verifies the Firebase ID
+token, creates/links the Vexora user and issues its own short-lived access token with refresh rotation.
+• RBAC guards plus PostgreSQL Row-Level Security for user-owned data; permission matrix from Section 2 as
+code and tests.
+• Admin shell (Next.js): login, mandatory MFA (TOTP or passkey/WebAuthn), role-based navigation, session list
+and force-logout.
+• Mobile shell (Flutter): onboarding, sign-in, profile, secure token storage, app-version check, theme from the
+design system.
+• Append-only audit log service with hash chaining; rate limiting and abuse protection on OTP and login.
+• Account lifecycle: verify, recover, change phone/email, delete/anonymise request.
+
+-- 26 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 27
+MCP servers used in this phase
+MCP server How it is used
+Dart MCP Build and analyse the Flutter shell; run widget tests; add packages (firebase_auth, secure storage,
+dio, riverpod/bloc).
+Context7 Current docs for NestJS guards, Firebase Admin token verification, Next.js middleware, Flutter auth
+packages.
+Developer Knowledge Official Firebase Auth, phone-auth abuse protection and App Check guidance.
+Firebase Configure sign-in providers, authorised domains, App Check (debug tokens for dev), Crashlytics.
+Postgres Verify migrations, indexes, RLS policies and that the audit table rejects UPDATE/DELETE.
+Playwright E2E: admin login with MFA, role-restricted pages, session revoke.
+Stitch Sign-in, onboarding, profile and admin shell screens.
+GitHub One PR per module; CI must pass; code-scanning enabled.
+Filesystem Generate modules, DTOs, migrations and docs.
+Security gate
+• No custom password storage unless needed; if used, Argon2id with tuned parameters.
+• OTP throttling per phone, per IP and per device; CAPTCHA/App Check on send-OTP.
+• Refresh-token rotation with reuse detection (reuse revokes the whole session family).
+• Admin MFA enforced and tested; verify that a normal user token cannot reach /admin/*.
+• Security headers (CSP, HSTS, X-Content-Type-Options, frame protections) on all web apps.
+Exit criteria (do not start the next phase until all are true)
+[ ] A new user can sign up, sign in on mobile, and see a profile; sessions can be listed and revoked.
+[ ] Admin can only sign in with MFA; permission tests green for every role.
+[ ] Audit chain verification job passes; CI green with >= 80% coverage on auth/RBAC code.
+PHASE 2 Games & Teams Est. 3 weeks
+Goal. The player ecosystem: configurable games and modes, player game profiles and teams with rosters.
+What to build
+• Admin: games, modes, rule templates and versioned scoring definitions (JSON schema validated by the shared
+package).
+• Player: choose favourite games, link in-game ID/UID per game, public/private profile controls.
+• Teams: create, invite/accept/leave, roles (captain, manager, player, substitute), roster limits, transfer log and
+duplicate-identity checks.
+• Seasons table and season management (admin).
+• Search and filter basics (PostgreSQL full-text and trigram indexes).
+• Image upload pipeline for avatars/logos: signed upload URLs, type and size limits, malware scan, image
+re-encoding.
+• Mobile screens: Games, Team list, Team detail, Invite flow, Profile editor.
+
+-- 27 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 28
+MCP servers used in this phase
+MCP server How it is used
+Stitch Games hub, team page, invite sheet, profile editor designs.
+Dart MCP Implement and test the screens; add golden tests for key components.
+Context7 Docs for the image upload libraries, pagination patterns, ORM relations.
+Postgres Check query plans for team/game lookups; verify unique constraints (one captain, one UID per
+game).
+Playwright Admin game/mode/scoring-template CRUD flows.
+Filesystem Generate game-definition JSON schemas and seed data.
+GitHub PRs per feature; issue labels by module.
+Security gate
+• Signed URLs for uploads; reject SVG/script content; strip metadata (EXIF) from images.
+• Invite spam limits and block lists; ensure a user cannot add themselves to a team without consent.
+• Authorisation tests: only the captain/manager can edit the roster.
+Exit criteria (do not start the next phase until all are true)
+[ ] Admin can define a game, mode and scoring version; players can create a team and invite members.
+[ ] Duplicate in-game UID rule enforced; upload pipeline tested with hostile files.
+PHASE 3 Tournament MVP Est. 4 weeks
+Goal. Organisers can create tournaments, players can discover and register, and brackets/match schedules are
+generated.
+What to build
+• Tournament module with the full state machine from Section 4; invalid transitions rejected and audit-logged.
+• Tournament creation wizard (web + mobile organiser flavour) with validation of schedule, capacity, rules version
+and prize text.
+• Discovery: filters (game, date, format, entry type, prize, organiser status), sorting, deep links and QR join links.
+• Registration with capacity control (row lock / unique constraint), waitlist, check-in and roster lock.
+• Bracket/match engine: knockout, round-robin and league first; byes and seeding; Battle Royale lobby grouping for
+BR games.
+• Organiser dashboard: participants, check-in status, announcements, match list.
+• Free tournaments only in this phase (no money flow yet). Admin tournament review/approval queue.
+MCP servers used in this phase
+MCP server How it is used
+Stitch Discover, tournament detail, join sheet, organiser create wizard, bracket view.
+Dart MCP Build lists, filters, bracket widgets; run integration tests on low-end device profiles.
+Postgres Concurrency proof: simulate many simultaneous registrations for the last slot; verify indexes for
+discovery queries.
+Playwright E2E: organiser creates -> admin approves -> player registers -> check-in -> bracket generated.
+Context7 Docs for queue/worker library (BullMQ), scheduling, and date/timezone handling.
+Filesystem / GitHub Module scaffolding; PR per sub-feature; milestone tracking.
+Security gate
+• Server time only for registration windows; client time never trusted.
+
+-- 28 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 29
+• Organiser can only edit tournaments they own (tested); changes after publish are versioned and notified.
+• Rate limits on registration and tournament creation; abuse test with scripted bots.
+Exit criteria (do not start the next phase until all are true)
+[ ] A full 16-team free tournament can run from creation to a generated bracket on staging.
+[ ] Concurrency test: exactly N winners for N slots, no double registration.
+PHASE 4 Results, Evidence, Scoring & Leaderboards Est. 3 weeks
+Goal. The competitive loop: submit results with evidence, validate, finalise, score and rank.
+What to build
+• Match result submission with idempotency keys; keep raw submissions and the adjudicated result separately.
+• Evidence upload (screenshots, short video) with SHA-256 hash recorded at upload, signed URLs, size/type limits
+and antivirus scanning.
+• Confirm / counter-submit flow for teams; conflict -> automatic hold and dispute stub (full workflow in Phase 5).
+• Scoring engine package (placement + kills + bonuses, tie-breakers) shared by server and client preview;
+formulas versioned.
+• Leaderboard transaction: score rows -> season stats -> cached leaderboard (Redis) with historical snapshots.
+• Player dashboard: matches, wins, average placement, points/match, recent form, tournament and team history.
+• "Verify this result" page with result hash, evidence hashes and formula version.
+MCP servers used in this phase
+MCP server How it is used
+Dart MCP Result submission UI, evidence picker/compressor, dashboard charts; widget and integration tests.
+Postgres Verify scoring writes in a single transaction; check leaderboard queries and snapshot tables.
+Playwright E2E: submit -> confirm -> finalise -> leaderboard updates; conflicting submissions create a hold.
+Context7 Docs for file-upload streaming, image/video processing and charting libraries.
+Stitch Result entry, evidence viewer, dashboard and leaderboard screens.
+GitHub Scoring engine in its own package with its own tests and changelog.
+Security gate
+• Uploaded files re-validated by magic bytes, scanned, stored with random keys, served via short-lived signed
+URLs.
+• Results immutable after finalisation; corrections only via an authorised, audited correction record.
+• Mutation tests and property tests on the scoring engine.
+Exit criteria (do not start the next phase until all are true)
+[ ] Scoring tests match hand-calculated examples for every launch game.
+[ ] A finalised result is reproducible from stored inputs and formula version.
+
+-- 29 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 30
+PHASE 5 Trust: Organiser Verification, Reports, Disputes &
+Moderation Est. 3 weeks
+Goal. Make Vexora safe: only verified organisers host public events, and problems have a fair, auditable path.
+What to build
+• Organiser application, document upload to a separate encrypted bucket, KYC provider integration where legally
+required, admin review queue.
+• Organiser tiers (Starter / Verified / Partner), public trust indicators and publishing holds triggered by rules.
+• Reports (player, team, organiser, result, chat) with categories; report is not a violation until reviewed.
+• Dispute workflow: case ID, evidence attach, settlement freeze, moderator decision with reason, appeal window,
+final decision.
+• Sanction ladder (warning, restriction, suspension, ban) with published policy and appeal.
+• Ratings and reviews after completed tournaments with sample size and moderation.
+• Moderator console: queue, case view, evidence viewer, macros, SLA timers; Security Centre v1.
+MCP servers used in this phase
+MCP server How it is used
+Stitch Organiser application, moderator queue and case view, trust badge/profile.
+Playwright E2E for the application -> approval -> publish path; dispute -> decision -> appeal path; permission
+boundaries for moderators.
+Postgres Confirm KYC documents are in a separate schema/bucket and not readable by ordinary roles; verify
+case/evidence integrity.
+Developer Knowledge Review Firebase/Google guidance for abuse prevention and App Check enforcement.
+Context7 KYC/e-sign provider SDK docs; queue and SLA scheduler docs.
+GitHub Threat-model update PR; labelled security issues.
+Security gate
+• Moderators see evidence but not KYC documents; KYC access requires a separate role plus logged reason.
+• Every moderation decision stores actor, reason, evidence refs and policy clause.
+• No automatic bans in high-impact cases; risk signals only prioritise review.
+Exit criteria (do not start the next phase until all are true)
+[ ] An organiser cannot publish a public tournament until approved.
+[ ] A disputed result freezes settlement and ends with an auditable decision; appeal path tested.
+
+-- 30 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 31
+PHASE 6 Wallet, Ledger, Redeem Codes & Payments Est. 4 weeks
+Goal. A controlled closed-loop credit system. Enable only after the legal/payment review for your launch
+jurisdictions.
+What to build
+• Double-entry ledger tables with append-only triggers, idempotency keys and invariant checks (property tests).
+• Wallet service: CREDIT, HOLD, RELEASE, REFUND, REWARD, DEBIT/SETTLEMENT, ADJUSTMENT (reason
++ admin ID + second approver).
+• Redeem codes: HMAC-hashed storage, checksum, batches, expiry, rate limits, lock-out and anomaly alerts,
+encrypted batch export.
+• Payment-provider integration with signed webhooks, replay protection and webhook_events de-duplication; client
+never confirms payment.
+• Tournament entry using holds, prize escrow, refunds on cancellation, settlement job.
+• Payout request queue (requested -> under review -> approved -> processing -> paid/failed/rejected) with
+maker-checker approval.
+• Daily reconciliation job: ledger vs provider vs payouts, with discrepancy dashboard and alerts.
+• Feature flags so credits/payouts can be disabled instantly per region.
+MCP servers used in this phase
+MCP server How it is used
+Postgres Verify ledger invariants with SQL checks; inspect locking and isolation behaviour; review slow
+queries on ledger search.
+Playwright E2E: redeem code twice (second is rejected), registration hold/release, payout approval with two
+admins.
+Context7 Payment SDK and webhook-signature docs; decimal/money handling libraries.
+Firebase Remote Config / feature flags for regional kill-switches; App Check enforced for wallet endpoints.
+Developer Knowledge Play Integrity / App Attest guidance for sensitive calls.
+Dart MCP Wallet screens, biometric gate, transaction history with offline-safe states.
+GitHub Mandatory two-reviewer rule on the wallet/ payouts folders (CODEOWNERS).
+Security gate
+• Sum of all ledger entries must equal zero; balance can never go negative (DB constraint plus test).
+• Money uses NUMERIC/integer minor units, never floating point.
+• Redeem-code brute-force tests pass; maker-checker enforced (creator cannot approve own payout).
+• Webhook signature, timestamp and duplicate-event tests pass; reconciliation reports zero unexplained
+differences on test data.
+Exit criteria (do not start the next phase until all are true)
+[ ] Legal sign-off recorded for each enabled region; otherwise the wallet stays in test/free mode.
+[ ] Full cycle works on staging: redeem -> join -> hold -> cancel -> release; and finish -> reward -> payout request
+-> reconcile.
+
+-- 31 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 32
+PHASE 7 Real-time, Push & Live Experience Est. 2 weeks
+Goal. Live tournament status, results and notifications delivered instantly and reliably.
+What to build
+• WebSocket gateway (Socket.IO) with token auth, per-channel authorisation, rate limits and Redis pub/sub for
+horizontal scale.
+• Event catalogue from Section 14 with sequence numbers, reconnect and missed-event replay.
+• Firebase Cloud Messaging: topic and device targeting, notification preferences, quiet hours, localisation, delivery
+tracking and dead-letter queue.
+• In-app inbox, deep links from notifications to match/tournament/dispute screens.
+• Live tournament board and live leaderboard on mobile and web; organiser announcement channel with
+moderation.
+• Maintenance banner and degraded-mode behaviour (read-only if real-time fails).
+MCP servers used in this phase
+MCP server How it is used
+Firebase Configure FCM, topics, notification channels and Crashlytics alerts for real-time failures.
+Developer Knowledge Current Android/iOS notification permission, channel and background-delivery rules.
+Dart MCP WebSocket client, reconnect logic, notification handling; tests with simulated flaky networks.
+Playwright Multi-browser E2E: two users see the same live update; unauthorised channel join is denied.
+Context7 Socket.IO adapter, Redis pub/sub and FCM SDK docs.
+Postgres Outbox pattern table so events are published only after the database commit.
+Security gate
+• Per-connection and per-user message rate limits; payload size limits.
+• A user cannot subscribe to another user's wallet or another tournament's private channel.
+• No sensitive data (balances, KYC, room codes) in push payloads; send IDs and fetch securely.
+Exit criteria (do not start the next phase until all are true)
+[ ] Result finalisation updates the leaderboard on two devices within seconds.
+[ ] Notification delivered on Android and iOS test devices; reconnect replay verified.
+
+-- 32 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 33
+PHASE 8 Analytics, Achievements & Support Desk Est. 3 weeks
+Goal. Turn data into player identity, organiser insight and operational control.
+What to build
+• Player analytics: trends per game/season, role history, consistency; organiser analytics: registrations, check-in,
+completion, disputes, ratings; admin analytics: DAU/MAU, retention, liability, payout time, fraud cases.
+• Reporting tables/materialised views refreshed by workers; no heavy analytics on the primary tables during live
+events.
+• Achievements and badges engine (Section 42) with verified-source rules.
+• Support ticket system with SLAs, categories, canned replies, escalation to finance/moderation, CSAT survey.
+• Firebase Analytics events plan and funnel dashboards; privacy-respecting event naming without personal data.
+• Admin dashboards finished with charts and export (CSV/PDF) under role control.
+MCP servers used in this phase
+MCP server How it is used
+Stitch Dashboard, charts and ticket desk designs.
+Postgres Design and test materialised views/indexes; EXPLAIN every dashboard query; read-replica
+readiness.
+Dart MCP Dashboard charts, share cards, achievements UI.
+Playwright Admin dashboard and ticket flows; export permission tests.
+Firebase Analytics events, conversion funnels, Remote Config experiments.
+Context7 Charting library and cron/worker docs.
+Security gate
+• Analytics exports masked for personal data; role-limited and logged.
+• Retention rules applied to event data; consent honoured for analytics.
+Exit criteria (do not start the next phase until all are true)
+[ ] Every dashboard metric has a documented definition and a test against known data.
+[ ] Support SLAs visible and breach alerts working.
+
+-- 33 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 34
+PHASE 9 Hardening: Security, Load, DR & Store Preparation Est. 3 weeks
+Goal. Prove the system is secure, fast and recoverable before real users arrive.
+What to build
+• Independent penetration test (or at least a structured internal one) against API, apps, admin and storage; fix
+critical/high issues.
+• OWASP ASVS and OWASP Mobile (MASVS) checklists completed; threat model reviewed.
+• Load tests: tournament-start spike, leaderboard refresh, WebSocket fan-out, redeem-code endpoint under attack.
+• Backup, point-in-time recovery and a full restore drill (database + object-storage references); define RPO/RTO.
+• Observability: dashboards, alerts, error budgets, log redaction review (Section 46).
+• App-store preparation: privacy labels/data-safety form, permissions review, screenshots, age rating,
+account-deletion flow, review notes.
+• Accessibility audit, localisation review, low-end device performance pass.
+MCP servers used in this phase
+MCP server How it is used
+Playwright Full regression suite plus visual and accessibility checks on every release candidate.
+Dart MCP Analyse, profile and test release builds; dependency and lint clean-up; size/performance checks.
+GitHub Code-scanning, Dependabot, secret-scanning alerts triaged; release branch and tagged RC.
+Postgres Index review, vacuum/bloat checks, restore verification queries on the recovered database.
+Firebase Enforce App Check, review security rules, Crashlytics stability thresholds.
+Developer Knowledge Final check against current Google Play and Firebase policy/requirements.
+Security gate
+• Zero open critical/high vulnerabilities; medium issues have owners and dates.
+• Secrets rotated; production access reviewed; least-privilege audit signed.
+• Restore drill completed with timing recorded.
+Exit criteria (do not start the next phase until all are true)
+[ ] Load test targets met (define them: for example p95 API < 300 ms at expected peak).
+[ ] Release candidate passes the complete E2E suite on staging; store submission checklist complete.
+
+-- 34 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 35
+PHASE 10 Pilot & Controlled Launch Est. 3 weeks+
+Goal. Release to a small group, learn, fix, then widen gradually.
+What to build
+• Closed beta via Firebase App Distribution / TestFlight / Play internal testing with 20-50 players and 2-3 verified
+organisers.
+• Run 2-3 complete pilot tournaments end-to-end with a moderator on standby and a live incident channel.
+• Staged rollout: percentage-based release, feature flags, regional enablement, monitoring of crash-free rate,
+disputes, payment failures.
+• Publish Terms, Privacy, Refund, Dispute and Code of Conduct; enable the support desk and status page.
+• Collect feedback, review dispute and completion metrics weekly; decide on enabling paid features only after the
+legal review.
+• Post-launch retro and the next-quarter roadmap (Section 41 and 42 items).
+MCP servers used in this phase
+MCP server How it is used
+Firebase App Distribution, staged rollout flags in Remote Config, Crashlytics monitoring.
+Developer Knowledge Production-readiness and store-policy checks.
+GitHub Release notes, hotfix branches, issue triage board for pilot feedback.
+Playwright Production smoke tests (read-only, test accounts) after each deployment.
+Postgres Read-only checks on staging copies of anonymised data; no direct production access from MCP.
+Security gate
+• Incident-response runbook rehearsed; on-call and escalation contacts confirmed.
+• Kill-switches for wallet, payouts, registration and publishing tested.
+• Data-subject request process (access/delete) tested end-to-end.
+Exit criteria (do not start the next phase until all are true)
+[ ] Pilot tournaments complete without unresolved financial discrepancies.
+[ ] Crash-free sessions above target; dispute rate and resolution time within thresholds.

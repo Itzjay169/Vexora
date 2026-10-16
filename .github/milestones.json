@@ -1,0 +1,242 @@
+[
+  {
+    "number": 1,
+    "name": "Business Rules, ADRs & Legal Kickoff",
+    "line": 22,
+    "goal": "Lock every decision before code. PDF refs: Sections 1, 24, 28, 31, 50. Build:"
+  },
+  {
+    "number": 2,
+    "name": "Repository, Monorepo Scaffold & MCP Toolchain",
+    "line": 32,
+    "goal": "Clean, protected repo and a working MCP setup. PDF refs: Sections 30, 37, 38, 39 (Phase 0). Build:"
+  },
+  {
+    "number": 3,
+    "name": "Local Dev Environment, CI Baseline & Firebase Projects",
+    "line": 40,
+    "goal": "Everyone can run the stack locally; CI runs on every PR; Firebase DEV/PROD exist. PDF refs: Sections 15, 39 (Phase 0), 45. Build:"
+  },
+  {
+    "number": 4,
+    "name": "Design System, ERD, OpenAPI Draft & Threat Model",
+    "line": 49,
+    "goal": "Visual and technical blueprint ready. PDF refs: Sections 16, 17, 44, 47; threat models. Build:"
+  },
+  {
+    "number": 5,
+    "name": "Backend Core Skeleton",
+    "line": 59,
+    "goal": "Production-shaped NestJS modular monolith. PDF refs: Sections 15, 17, 18, 39 (Phase 1). Build:"
+  },
+  {
+    "number": 6,
+    "name": "Database Foundation, Migrations & Tamper-Evident Audit Log",
+    "line": 66,
+    "goal": "Core tables and the audit chain. PDF refs: Sections 16, 47 (Tamper-evident audit log). Build:"
+  },
+  {
+    "number": 7,
+    "name": "Authentication (Firebase + Vexora Tokens + Sessions)",
+    "line": 73,
+    "goal": "Secure sign-up/sign-in. PDF refs: Sections 18, 39 (Phase 1), 47 (Identity). Build:"
+  },
+  {
+    "number": 8,
+    "name": "RBAC, Row-Level Security & Permission Matrix",
+    "line": 81,
+    "goal": "Enforce Section 2 permissions twice (API + DB). PDF refs: Sections 2, 47. Build:"
+  },
+  {
+    "number": 9,
+    "name": "Admin Console Shell with Mandatory MFA",
+    "line": 90,
+    "goal": "Empty but secure admin app. PDF refs: Sections 12, 39 (Phase 1), 47. Build:"
+  },
+  {
+    "number": 10,
+    "name": "Mobile App Shell (Flutter)",
+    "line": 98,
+    "goal": "Installable app with onboarding and sign-in. PDF refs: Sections 13, 39 (Phase 1), 44. Build:"
+  },
+  {
+    "number": 11,
+    "name": "Games, Modes & Versioned Scoring Definitions",
+    "line": 106,
+    "goal": "Configurable game engine (no hard-coded games). PDF refs: Sections 5, 39 (Phase 2). Build:"
+  },
+  {
+    "number": 12,
+    "name": "Player Profiles, In-Game IDs & Secure Upload Pipeline",
+    "line": 113,
+    "goal": "Player identity per game and safe images. PDF refs: Sections 6, 39 (Phase 2), 48. Build:"
+  },
+  {
+    "number": 13,
+    "name": "Teams, Rosters & Transfer Log",
+    "line": 119,
+    "goal": "Full team system. PDF refs: Section 6. Build:"
+  },
+  {
+    "number": 14,
+    "name": "Seasons, Search & Filters",
+    "line": 125,
+    "goal": "Seasons and fast search. PDF refs: Sections 7, 39 (Phase 2). Build:"
+  },
+  {
+    "number": 15,
+    "name": "Tournament State Machine & Creation Wizard",
+    "line": 132,
+    "goal": "Safe, validated tournament lifecycle. PDF refs: Sections 4, 39 (Phase 3). Build:"
+  },
+  {
+    "number": 16,
+    "name": "Discovery & Registration (with Concurrency Safety)",
+    "line": 139,
+    "goal": "Players find and join tournaments. PDF refs: Sections 3, 4, 26, 39 (Phase 3). Build:"
+  },
+  {
+    "number": 17,
+    "name": "Bracket & Match Engine",
+    "line": 146,
+    "goal": "Generate and run matches. PDF refs: Sections 4, 39 (Phase 3). Build:"
+  },
+  {
+    "number": 18,
+    "name": "Organiser Dashboard & Admin Tournament Review Queue",
+    "line": 154,
+    "goal": "Operations for organisers and approval for admins. PDF refs: Sections 12, 39 (Phase 3), 43. Build:"
+  },
+  {
+    "number": 19,
+    "name": "Result Submission & Evidence",
+    "line": 162,
+    "goal": "Trustworthy result entry. PDF refs: Sections 4, 11, 39 (Phase 4), 47 (Evidence integrity). Build:"
+  },
+  {
+    "number": 20,
+    "name": "Scoring Engine & Leaderboards",
+    "line": 170,
+    "goal": "Reproducible scoring and ranking. PDF refs: Sections 5, 7, 39 (Phase 4). Build:"
+  },
+  {
+    "number": 21,
+    "name": "Player Dashboard & \"Verify This Result\" Page",
+    "line": 177,
+    "goal": "Player performance identity and public verifiability. PDF refs: Sections 7, 25, 39 (Phase 4). Build:"
+  },
+  {
+    "number": 22,
+    "name": "Organiser Verification & Tiers",
+    "line": 185,
+    "goal": "Only verified organisers host public events. PDF refs: Sections 10, 39 (Phase 5). Build:"
+  },
+  {
+    "number": 23,
+    "name": "Reports, Disputes, Moderation & Sanctions",
+    "line": 192,
+    "goal": "Fair, auditable problem handling. PDF refs: Sections 11, 19, 26, 39 (Phase 5). Build:"
+  },
+  {
+    "number": 24,
+    "name": "Ratings, Reputation & Security Centre v1",
+    "line": 201,
+    "goal": "Transparent reputation and an admin security view. PDF refs: Sections 12, 21, 39 (Phase 5), 47. Build:"
+  },
+  {
+    "number": 25,
+    "name": "Double-Entry Ledger & Wallet Service",
+    "line": 212,
+    "goal": "Safe internal credit system. PDF refs: Sections 8, 16, 39 (Phase 6). Build:"
+  },
+  {
+    "number": 26,
+    "name": "Redeem Codes",
+    "line": 219,
+    "goal": "Secure code generation and redemption. PDF refs: Section 8. Build:"
+  },
+  {
+    "number": 27,
+    "name": "Payments, Prize Escrow & Paid Tournament Flow",
+    "line": 227,
+    "goal": "Money in, holds and prizes. PDF refs: Sections 9, 26, 39 (Phase 6). Build:"
+  },
+  {
+    "number": 28,
+    "name": "Payouts, Reconciliation & Financial Reports",
+    "line": 234,
+    "goal": "Controlled cash-out and audit-ready finance. PDF refs: Sections 8, 9, 47 (Wallet and payout security). Build:"
+  },
+  {
+    "number": 29,
+    "name": "Real-Time Gateway (WebSockets)",
+    "line": 242,
+    "goal": "Live events, safely. PDF refs: Sections 14, 39 (Phase 7). Build:"
+  },
+  {
+    "number": 30,
+    "name": "Push Notifications, Inbox & Announcements",
+    "line": 249,
+    "goal": "Reliable multi-channel communication. PDF refs: Sections 20, 39 (Phase 7). Build:"
+  },
+  {
+    "number": 31,
+    "name": "Analytics & Dashboards",
+    "line": 257,
+    "goal": "Insight for players, organisers, admins. PDF refs: Sections 22, 39 (Phase 8). Build:"
+  },
+  {
+    "number": 32,
+    "name": "Achievements, Gamification & Retention",
+    "line": 263,
+    "goal": "Fair-play-focused engagement. PDF refs: Sections 41, 42. Build:"
+  },
+  {
+    "number": 33,
+    "name": "Support Desk",
+    "line": 269,
+    "goal": "Ticketing instead of ad-hoc chat. PDF refs: Sections 23, 39 (Phase 8). Build:"
+  },
+  {
+    "number": 34,
+    "name": "Vexora Extended Features",
+    "line": 276,
+    "goal": "Add Section 41 extras without touching MVP stability (each behind a feature flag). PDF refs: Sections 41, 43. Build (in priority order, one PR each):"
+  },
+  {
+    "number": 35,
+    "name": "Privacy, Compliance, Localisation & Accessibility",
+    "line": 285,
+    "goal": "Legal and inclusive readiness. PDF refs: Sections 24, 31, 48. Build:"
+  },
+  {
+    "number": 36,
+    "name": "Security Hardening & Penetration Testing",
+    "line": 292,
+    "goal": "Zero open critical/high vulnerabilities. PDF refs: Sections 18, 19, 47, 39 (Phase 9). Build:"
+  },
+  {
+    "number": 37,
+    "name": "Load Testing, Observability, Backup & Disaster Recovery",
+    "line": 300,
+    "goal": "Prove it is fast, watchable and recoverable. PDF refs: Sections 45, 46, 49, 39 (Phase 9). Build:"
+  },
+  {
+    "number": 38,
+    "name": "Store Preparation & Release Candidate",
+    "line": 309,
+    "goal": "Submit-ready builds. PDF refs: Sections 29, 35, 39 (Phase 9). Build:"
+  },
+  {
+    "number": 39,
+    "name": "Closed Beta & Pilot Tournaments",
+    "line": 317,
+    "goal": "Learn safely with a small group. PDF refs: Sections 32, 35, 39 (Phase 10). Build:"
+  },
+  {
+    "number": 40,
+    "name": "Controlled Public Launch & Post-Launch Roadmap",
+    "line": 326,
+    "goal": "Gradual public release and next-quarter plan. PDF refs: Sections 28, 36, 52. Build:"
+  }
+]

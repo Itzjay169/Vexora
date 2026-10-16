@@ -1,0 +1,27 @@
+
+24. Legal, Compliance & Policy Layer
+Before production launch, obtain jurisdiction-specific advice. The exact treatment of esports entry fees, prize pools,
+platform credits, cash settlement, taxes, KYC/AML, consumer protection, advertising, age restrictions, payment
+processing and gaming laws can differ by location and can change over time.
+• Terms of Service.
+• Privacy Policy and data-retention policy.
+• Refund/cancellation policy.
+• Tournament rules and organiser agreement.
+• Code of conduct.
+• Dispute and appeal policy.
+• Payout/settlement terms.
+• Acceptable use and anti-fraud policy.
+• Age/eligibility rules.
+• Consent and privacy controls for location/device data.
+• Tax/invoice and accounting process.
+• Clear statement that the platform does not support cheating, match-fixing or wagering unless separately lawful
+and expressly supported.
+• Vexora addition: India-specific review items — DPDP Act 2023 consent and data-principal rights, IT Rules
+intermediary obligations (grievance officer, takedown timelines), state-level online-gaming rules, GST treatment
+of entry fees/credits, RBI/payment-aggregator rules, and minors/parental-consent policy. Confirm each with a
+qualified Indian lawyer.
+
+-- 16 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 17

@@ -1,0 +1,129 @@
+:root {
+  /* Brand Colors */
+  --vx-brand-primary: #6366F1;
+  --vx-brand-primary-hover: #4F46E5;
+  --vx-brand-secondary: #A855F7;
+  --vx-brand-secondary-hover: #9333EA;
+  --vx-brand-accent: #06B6D4;
+  --vx-brand-accent-hover: #0891B2;
+
+  /* Dark Theme (Default First-Class Esports Mode) */
+  --vx-bg: #0A0F1D;
+  --vx-surface: #0F172A;
+  --vx-surface-elevated: #131B2E;
+  --vx-surface-highlight: #1E293B;
+  --vx-border: #334155;
+  --vx-border-subtle: #1E293B;
+  --vx-text-primary: #F8FAFC;
+  --vx-text-secondary: #94A3B8;
+  --vx-text-muted: #64748B;
+
+  /* Trust Indicators */
+  --vx-trust-verified: #38BDF8;
+  --vx-trust-hash-tick: #10B981;
+  --vx-trust-rules: #A855F7;
+  --vx-trust-formula: #6366F1;
+
+  /* Spacing */
+  --vx-space-xs: 4px;
+  --vx-space-sm: 8px;
+  --vx-space-md: 12px;
+  --vx-space-lg: 16px;
+  --vx-space-xl: 20px;
+  --vx-space-2xl: 24px;
+  --vx-space-3xl: 32px;
+  --vx-space-4xl: 40px;
+
+  /* Radius */
+  --vx-radius-sm: 4px;
+  --vx-radius-md: 8px;
+  --vx-radius-lg: 12px;
+  --vx-radius-xl: 16px;
+  --vx-radius-full: 9999px;
+
+  /* Elevation */
+  --vx-shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --vx-shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  --vx-shadow-glow-primary: 0 0 20px rgba(99, 102, 241, 0.35);
+  --vx-shadow-glow-accent: 0 0 20px rgba(6, 182, 212, 0.35);
+
+  /* Motion */
+  --vx-motion-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --vx-motion-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --vx-motion-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="light"] {
+  --vx-bg: #F8FAFC;
+  --vx-surface: #FFFFFF;
+  --vx-surface-elevated: #F1F5F9;
+  --vx-surface-highlight: #E2E8F0;
+  --vx-border: #CBD5E1;
+  --vx-border-subtle: #E2E8F0;
+  --vx-text-primary: #0F172A;
+  --vx-text-secondary: #475569;
+  --vx-text-muted: #94A3B8;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--vx-bg);
+  color: var(--vx-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Status Chips - 11 Tournament States */
+.badge-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--vx-radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-state-draft { background: #1E293B; color: #94A3B8; border: 1px solid #334155; }
+.badge-state-pending-review { background: #451A03; color: #FBBF24; border: 1px solid #B45309; }
+.badge-state-scheduled { background: #082F49; color: #38BDF8; border: 1px solid #0284C7; }
+.badge-state-registration-open { background: #022C22; color: #34D399; border: 1px solid #059669; }
+.badge-state-check-in { background: #2E1065; color: #C084FC; border: 1px solid #7C3AED; }
+.badge-state-live { background: #4C0519; color: #FB7185; border: 1px solid #E11D48; }
+.badge-state-result-pending { background: #431407; color: #FB923C; border: 1px solid #EA580C; }
+.badge-state-disputed { background: #450A0A; color: #F87171; border: 1px solid #DC2626; }
+.badge-state-completed { background: #1E1B4B; color: #818CF8; border: 1px solid #4F46E5; }
+.badge-state-settled { background: #042F2E; color: #2DD4BF; border: 1px solid #0D9488; }
+.badge-state-archived { background: #0F172A; color: #64748B; border: 1px solid #1E293B; }
+
+/* Trust UI Patterns */
+.badge-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  padding: 2px 8px;
+  border-radius: var(--vx-radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-evidence-hash {
+  font-family: monospace;
+  font-size: 0.75rem;
+  background: #022C22;
+  color: #34D399;
+  padding: 2px 8px;
+  border-radius: var(--vx-radius-sm);
+  border: 1px solid #059669;
+}

@@ -1,0 +1,23 @@
+
+15. Recommended Technical Architecture
+Option A — practical modern stack
+Layer Recommended technology
+Mobile Flutter or React Native (Vexora default: Flutter, built with the Dart/Flutter MCP server)
+Web React / Next.js
+Admin Next.js/React with strict RBAC
+Backend Node.js + NestJS/Express or Java + Spring Boot
+Database PostgreSQL
+Cache / queues Redis
+Real-time WebSockets / Socket.IO or managed real-time service
+Storage S3-compatible object storage for evidence/images
+Auth OAuth/phone/email + JWT/session rotation; MFA for admins
+Search PostgreSQL initially; OpenSearch/Elastic later if required
+Notifications Firebase Cloud Messaging + email/SMS provider
+Monitoring Sentry + metrics/logging stack
+Deployment Docker + managed cloud services; CI/CD
+For a student/startup MVP, do not begin with microservices. Use a modular monolith with clear modules and
+background workers. Split services only when scale or team structure justifies it.
+High-level architecture
+Mobile Apps / Web -> API Gateway / Backend -> Auth & RBAC -> Tournament Module -> Match/Bracket Engine ->
+Scoring/Leaderboard Engine -> Wallet/Ledger -> Payment/Code Module -> Notification Service -> PostgreSQL +
+Redis + Object Storage -> Admin/Moderation Console

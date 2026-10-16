@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "vexora-esports-dev",
+    "dev": "vexora-esports-dev",
+    "prod": "vexora-esports-prod"
+  }
+}

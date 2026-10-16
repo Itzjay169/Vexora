@@ -1,0 +1,55 @@
+
+37. MCP Toolchain for Building Vexora
+MCP (Model Context Protocol) servers give the AI coding assistant safe, structured access to tools and live
+documentation, so it can read current docs, run analysers and tests, drive a browser, query a database and manage
+the repository instead of guessing. Vexora uses nine MCP servers. Each has one clear job and is introduced in the
+phase where it first matters.
+MCP server What it does for Vexora Main phases
+Dart MCP server Official Dart/Flutter tooling for the assistant: analyse code, fix lints, run tests,
+format, inspect the running app/widget tree, search pub.dev and manage
+dependencies. Builds the Android/iOS apps.
+0, 1, 2, 3, 4, 7, 9
+Context7 Fetches up-to-date, version-specific documentation and code examples for
+libraries (NestJS, Next.js, Flutter packages, Socket.IO, Prisma/Drizzle, Razorpay
+SDK and so on) so generated code does not use outdated APIs.
+All phases
+Filesystem Scoped read/write access to the Vexora project folder: create modules, edit files,
+organise the monorepo, generate docs and migrations.
+All phases
+Stitch AI UI design tool: generates screen designs and front-end code from prompts.
+Used for the Vexora design system, player/organiser app screens and the admin
+dashboard layouts before they are built in Flutter/Next.js.
+0, 1, 2, 3, 8
+Developer Knowledge Search of Google's official developer documentation (Firebase, Android, Google
+Cloud, Flutter-adjacent guidance) so Firebase Auth, FCM, App Check and Play
+Integrity are implemented per the current official guidance.
+1, 7, 9, 10
+Firebase Manage the Firebase project from the assistant: Auth providers, Cloud
+Messaging, Remote Config, App Check, Crashlytics, Analytics, security rules and
+app registration.
+1, 6, 7, 9, 10
+Playwright Browser automation: end-to-end tests for the web, organiser and admin apps,
+regression suites, accessibility checks and screenshot comparison.
+1, 3, 4, 5, 6, 9
+GitHub Repository work: branches, issues, pull requests, code review, Actions status,
+code-scanning/Dependabot alerts and release notes. Drives the phase-by-phase
+milestone board.
+All phases
+Postgres Inspect the development/staging database: schema, indexes, query plans and
+test data. Used read-only to verify migrations, the ledger invariants and slow
+queries.
+1, 3, 4, 6, 8, 9
+How the servers work together
+Stitch (design) -> Dart MCP (Flutter UI) + Filesystem (code)
+-> Context7 / Developer Knowledge (correct, current APIs)
+-> Postgres (verify schema/data) -> Playwright (E2E tests)
+-> GitHub (PR, review, CI) -> Firebase (auth, push, release)
+Division of responsibility. PostgreSQL is the system of record for money, tournaments, results and audit logs.
+Firebase handles identity (phone/email OTP), push notifications, App Check, Remote Config and crash reporting. The
+backend verifies Firebase ID tokens and maps them to Vexora users. Balances and results are never stored in
+Firebase.
+
+-- 23 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 24

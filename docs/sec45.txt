@@ -1,0 +1,26 @@
+
+45. DevOps, CI/CD & Environments
+Environment Purpose Data / access
+Local Developer machine via Docker Compose Seed data only; MCP servers allowed
+Dev / Preview Per-PR preview deployments Synthetic data; MCP read-only Postgres allowed
+Staging Mirror of production for release testing Anonymised/synthetic data; test payment keys
+Production Real users No direct MCP/AI-tool access; human-run, audited
+access only
+CI/CD pipeline (GitHub Actions)
+on pull request:
+lint + format -> unit tests -> build -> DB migration dry-run -> integration tests
+-> SAST (CodeQL/Semgrep) -> dependency scan -> secret scan -> container scan
+-> Playwright E2E on preview -> Flutter analyze/test -> coverage gate
+on merge to main:
+build images -> sign images + SBOM -> deploy to staging -> smoke tests
+on release tag:
+manual approval (2 people for money modules) -> canary/rolling deploy
+-> health checks -> auto-rollback
+• Infrastructure as code (Terraform) and reproducible Docker images; no manual console changes in production.
+• Database migrations are forward-only, reviewed, run with a dry-run, and backed by a rollback/compensation plan.
+• Blue/green or canary deployment so a bad release can be rolled back in minutes; mobile kill-switch via Remote
+Config.
+• Dependabot/Renovate for dependencies, with CI gating; pinned versions and a lock file for every package
+manager.
+• Mobile: Fastlane (or Codemagic) builds, code signing in a secure store, staged rollout on Play and phased
+release on App Store.

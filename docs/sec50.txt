@@ -1,0 +1,33 @@
+
+50. Risk Register
+Risk Impact Mitigation
+Legal/regulatory change on paid entry or
+prizes
+Launch blocked or forced
+shutdown of money features
+Free-first launch, feature flags, regional kill-switch,
+legal review, ADR log
+Organiser takes entry fees and
+disappears
+User harm, brand damage Verification, escrow, holds, refunds, tier limits,
+public history
+Result manipulation / collusion Loss of trust Evidence hashing, dual confirmation, anomaly
+detection, disputes
+Redeem-code leak or insider abuse Financial loss HMAC storage, one-time use, encrypted export,
+maker-checker, alerts
+Account takeover Wallet and identity harm MFA/step-up, device trust, alerts, session
+revocation
+Scope creep Delays MVP boundary (Section 28), phase gates, backlog
+grooming
+AI-tool misuse (MCP over-permissioned) Data or repo damage Least privilege, read-only DB, branch protection,
+human approval (Section 38)
+Single-developer dependency Bus-factor risk Docs, ADRs, runbooks, CI, pair reviews
+Publisher/game policy conflict Games can be restricted Check each game's terms, avoid trademark
+misuse, get permissions where needed
+Platform outage during a big event Reputation loss Load tests, SLOs, runbooks, degraded mode,
+status page
+
+-- 41 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 42

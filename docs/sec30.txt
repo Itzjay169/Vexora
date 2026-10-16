@@ -1,0 +1,29 @@
+
+30. Suggested Folder Structure
+vexora/
+apps/
+mobile/ (Flutter: player + organiser flavours)
+web/ (Next.js: public site + organiser web)
+admin/ (Next.js: admin console, strict RBAC)
+backend/
+src/
+auth/ users/ games/ teams/ organisers/ tournaments/ matches/
+scoring/ leaderboards/ wallet/ redeem/ payouts/ disputes/
+moderation/ notifications/ admin/ audit/
+support/ achievements/ risk/ webhooks/ (Vexora additions)
+packages/
+shared-types/ validation/ scoring-engine/
+infra/
+docker/ migrations/ ci/
+terraform/ seeds/ (Vexora additions)
+docs/
+api/ rules/ policies/
+adr/ runbooks/ threat-models/ mcp/ (Vexora additions)
+.mcp.json (MCP server config, no secrets)
+CLAUDE.md (project rules for the AI assistant)
+.env.example (placeholders only)
+
+-- 19 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 20

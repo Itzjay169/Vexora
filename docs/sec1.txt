@@ -1,0 +1,38 @@
+
+1. Executive Summary
+Vexora is a multi-sided esports tournament ecosystem. Players primarily use the mobile application, organisers can
+use the mobile application and web interface, and administrators operate a secure desktop-first web dashboard. The
+system supports tournament discovery, registration, team management, match operations, result submission,
+leaderboards, performance analytics, internal credits, redeem codes, payout requests, organiser verification,
+disputes, notifications and real-time updates.
+The central trust problem is important: a player needs confidence that an organiser will actually conduct the
+tournament and distribute the announced prize, while the organiser needs confidence that players will follow the
+rules and that fraudulent activity can be investigated. Therefore, trust, evidence, audit logs, identity verification,
+controlled money flows and dispute handling should be core features—not features added later.
+Recommended product structure
+Area Primary user Main interface
+Administration Admin / moderator / finance staff Desktop web
+Tournament operations Verified organiser Mobile app + web
+Participation Player / team Mobile app + web
+Trust & safety Admin + moderator Desktop web + selected mobile actions
+Analytics Player / organiser / admin Mobile + web
+Real-time events All relevant users WebSockets / push notifications
+
+-- 3 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 4
+Core design goals
+• Transparent tournament information: rules, entry conditions, schedule, prize structure, organiser identity and
+status.
+• Strong organiser verification before the organiser can host public tournaments.
+• Team-based and individual performance tracking with game-specific statistics.
+• A controlled internal credit/ledger system instead of editing balances directly.
+• Every important financial, moderation and tournament action creates an audit record.
+• Real-time tournament status, match results, notifications and leaderboard updates.
+• Fraud/dispute workflows based on evidence rather than location-based punishment or assumptions.
+• Privacy-by-design: collect only information necessary for identity, safety, payments and compliance.
+• Vexora addition: an MCP-assisted, phase-by-phase build so every phase is shippable, tested and reviewable
+before the next begins.
+• Vexora addition: security as a default (secure-by-design, zero-trust admin, signed evidence, tamper-evident audit
+chain).

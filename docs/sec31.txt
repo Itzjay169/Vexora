@@ -1,0 +1,23 @@
+
+31. Core Business Rules to Lock Before Coding
+• What exactly counts as a tournament entry and what is free vs paid?
+• Which games are supported at launch?
+• Which tournament formats are supported?
+• Who funds prizes and when is the prize considered locked?
+• What happens if the minimum participant count is not reached?
+• What is the cancellation/refund policy?
+• When is a result final?
+• How long can a dispute be opened?
+• Who can change an official result?
+• What organiser verification is mandatory?
+• What is the internal credit model and what legal permissions are required for every conversion?
+• What user information is mandatory, and what is optional?
+• What data is public on a player/team/organiser profile?
+• What sanctions exist and what is the appeal process?
+• What are the exact scoring formulas for every game?
+• Vexora addition: minimum player age and the parental-consent rule for minors.
+• Vexora addition: which Indian states/countries are enabled at launch (geo-eligibility list owned by legal).
+• Vexora addition: data-retention period for each data class (evidence, chat, KYC, logs).
+• Vexora addition: who is the grievance officer and what are the response timelines?
+Rule: record every answer above as an Architecture Decision Record (ADR) in docs/adr before the related code is
+written.

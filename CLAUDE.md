@@ -1,0 +1,701 @@
+# Vexora Esports Tournament Platform - Engineering Guide
+
+## Current Status & Phase Tracking
+- **Current Phase**: **Phase 27: Payments, Prize Escrow & Paid Tournament Flow**
+- **Status**: **Phase 26 Completed — Ready for Phase 27 (Payments, Prize Escrow & Webhooks)**
+- **Decision Recorded**: **v1 Public Launch = 100% FREE Tournaments Only**
+- **Next Phase**: **Phase 27: Payments, Prize Escrow & Paid Tournament Flow**
+
+---
+
+## Overview
+Vexora is a multi-sided real-time esports tournament ecosystem for players, teams, verified organisers, and administrators. 
+- **System of Record**: PostgreSQL (all money, tournament state, match results, and audit trails).
+- **Identity & Push**: Firebase Authentication (Phone OTP, Email, Google), Firebase Cloud Messaging, App Check.
+- **Backend Architecture**: Modular Monolith with TypeScript, Express/NestJS patterns, WebSockets, and Redis pub/sub.
+- **Web App**: Next.js / React with dark esports aesthetic and WCAG AA accessibility.
+- **Admin App**: Desktop-first secure console with strict RBAC, mandatory MFA, and Maker-Checker approvals.
+- **Mobile**: Flutter / PWA mobile shell with offline drafts and biometric security gates.
+
+---
+
+## Core Security Mandates
+1. **Double-Entry Ledger**: Money/credits are NEVER updated in place. Every change is an immutable pair of ledger entries summing to zero. Balance = sum of transactions. CHECK constraint `available_balance >= 0`.
+2. **Tamper-Evident Audit Chain**: High-impact actions are logged into `audit_logs` where each record contains `prev_hash` and `curr_hash` (SHA-256 chain). Checkpoints are signed and verified.
+3. **Evidence Hashing**: Every screenshot and video evidence upload has its SHA-256 hash computed and recorded on ingress. Original files are immutable.
+4. **Idempotency**: All mutation endpoints (registration, payments, results, disputes) require an `Idempotency-Key` header.
+5. **Least Privilege & Row-Level Security**: Organisers can only modify their own tournaments; users can only see their own transactions. Admin access requires MFA and role authorization.
+6. **No Silent Edits**: Admin corrections require an `ADJUSTMENT` ledger entry with mandatory reason and dual approval.
+7. **Safe-Use MCP Rules**: Least privilege; Postgres MCP read-only on DEV/STAGING only; GitHub fine-grained token, never push to main; Firebase DEV project only; Playwright with test accounts only; never put secrets in prompts or code; ask user before destructive operations.
+8. **Session Security**: Refresh token rotation with session-family tracking; reuse of a rotated-out token revokes the entire session family. No tokens in logs.
+
+---
+
+## Repository Structure & Monorepo Map (Section 30)
+```
+vexora/
+├── apps/
+│   ├── web/          # Next.js 14 App Router: public portal, discovery, organiser web
+│   ├── admin/        # Next.js 14 App Router: desktop-first console with RBAC & Maker-Checker
+│   └── mobile/       # Flutter 3.x shell for players and organisers
+├── backend/          # Modular API backend
+│   └── src/
+│       ├── auth/         # JWT + Refresh token rotation, Firebase Auth integration, session families
+│       ├── users/        # User accounts, profiles, devices, sessions
+│       ├── games/        # Configurable game engine & versioned scoring schemas
+│       ├── teams/        # Team rosters, invitations, in-game UID validation
+│       ├── organisers/   # Verification tiers (Starter, Verified, Partner)
+│       ├── tournaments/  # 11-state state machine, registration, brackets
+│       ├── matches/      # Match scheduling, lobby details, room codes
+│       ├── scoring/      # Deterministic scoring engine package
+│       ├── leaderboards/ # Cached leaderboards with historical snapshots
+│       ├── wallet/       # Double-entry ledger, balance calculations, holds
+│       ├── redeem/       # HMAC-hashed redeem codes with checksum
+│       ├── payouts/      # Payout queue with maker-checker controls
+│       ├── disputes/     # Dispute workflow & settlement freezing
+│       ├── moderation/   # Sanction ladder (warning, restriction, suspension, ban)
+│       ├── notifications/# In-app inbox & FCM push delivery
+│       ├── admin/        # Admin management & system health
+│       ├── audit/        # Hash-chained audit log engine
+│       ├── support/      # Ticket management with SLA tracking
+│       ├── achievements/ # Gamification & badges
+│       ├── risk/         # Anomaly signals & anti-abuse engine
+│       ├── webhooks/     # Signed provider webhooks with replay protection
+│       └── common/       # Database pool, auth middleware, error handler
+├── packages/
+│   ├── shared-types/     # Shared TypeScript contracts and domain models
+│   ├── validation/       # Zod validation schemas (tournaments, results, disputes)
+│   └── scoring-engine/   # Deterministic game scoring rules (BGMI, Free Fire, CODM)
+├── infra/
+│   ├── docker/           # Docker Compose: PostgreSQL, Redis, MinIO, Mailpit
+│   ├── migrations/       # Versioned PostgreSQL DDL migrations (001-003)
+│   ├── ci/               # CI automation workflows & scripts
+│   ├── terraform/        # S3 WORM audit bucket, evidence storage definitions
+│   └── seeds/            # Initial games, scoring rules, and mock data
+├── docs/
+│   ├── adr/              # Architecture Decision Records (ADR-001 through ADR-015)
+│   ├── policies/         # Terms, Privacy (DPDP 2023), Code of Conduct, AUP, Disputes
+│   ├── threat-models/    # STRIDE threat model (auth, wallet, results, admin)
+│   ├── runbooks/         # SEV-1 to SEV-3 incident response & kill-switches
+│   ├── api/              # OpenAPI 3.0 draft specification
+│   └── mcp/              # MCP server scopes, safe-use rules, and credentials
+└── tests/
+    ├── unit/             # Unit tests (monorepo structure, scoring engine, validation)
+    └── e2e/              # Playwright browser integration suites
+```
+
+---
+
+## MCP Toolchain Architecture (Section 37 & 38)
+- `filesystem`: Scoped strictly to project workspace (`./`).
+- `github`: Fine-grained token for `Itz30jay/XYON_Eplatform` (PRs, issues, status checks).
+- `postgres`: Read-only connection to DEV/STAGING (`VEXORA_DEV_RO_DATABASE_URL`).
+- `firebase`: DEV project management (`vexora-esports-dev`). Never stores balances or scores.
+- `playwright`: Headless browser testing against local/staging test fixtures.
+- `dart-mcp-server`: Flutter tooling and mobile linting.
+- `stitch`: AI design token generation and WCAG AA contrast compliance.
+- `context7`: Current API documentation queries.
+- `developer-knowledge`: Official Google developer documentation.
+
+---
+
+## Completed Phases
+- **Phase 1: Business Rules, ADRs & Legal Kickoff**
+  - All 19 Section 31 questions answered as ADR-001 through ADR-015.
+  - 7 policy drafts created and flagged for lawyer review.
+  - India legal compliance checklist created.
+- **Phase 2: Repository, Monorepo Scaffold & MCP Toolchain**
+  - Section 30 folder structure fully scaffolded across apps, packages, infra, docs.
+  - `.github/CODEOWNERS` requiring 2 reviewers for wallet, auth, admin.
+  - PR template, issue templates, branch protection rules, and 40 milestones configured.
+  - `.mcp.json` pinned toolchain without secrets.
+  - Pre-commit secret scanning hook and Conventional Commits config.
+  - `docs/mcp/README.md` governance guide authored.
+- **Phase 3: Local Dev Environment, CI Baseline & Firebase Projects**
+  - Docker Compose configured with PostgreSQL 16, Redis 7, MinIO, and Mailpit (`infra/docker/docker-compose.yml`).
+  - Database seed runner and SQL game seeds active (`infra/seeds/seed.js`, `seed_games.sql`).
+  - GitHub Actions CI pipeline configured with 6 jobs including CodeQL SAST, secret scan, build, seed verification, and Playwright E2E (`.github/workflows/ci.yml`).
+  - Firebase DEV (`vexora-esports-dev`) and PROD (`vexora-esports-prod`) setup, emulator configs, and App Check debug tokens documented (`docs/firebase/README.md`, `.firebaserc`, `firebase.json`).
+  - Flutter mobile shell configured with lint rules and smoke test (`apps/mobile/`).
+  - Next.js web and admin app smoke tests and backend modular monolith smoke tests verified (`tests/unit/`).
+  - Playwright browser testing installed and E2E smoke tests passing (`playwright.config.js`, `tests/e2e/web-smoke.spec.js`).
+  - 26/26 unit and domain tests passing cleanly, pre-commit secret scan passing with zero secrets.
+- **Phase 4: Design System, ERD, OpenAPI Draft & Threat Model**
+  - Vexora design tokens package created (`packages/design-tokens/`) with brand colors, dark/light themes, 11 tournament state chips, and trust patterns.
+  - Exported CSS variables to web (`apps/web/src/app/globals.css`) and admin (`apps/admin/src/app/globals.css`).
+  - Exported Flutter `ThemeData` and `VexoraColors` (`apps/mobile/lib/theme/vexora_theme.dart`).
+  - WCAG AA accessibility specification documented in `docs/design-system/spec.md`.
+  - Storybook-style interactive UI Kit showcase page created (`apps/web/src/app/ui-kit/page.tsx`).
+  - Complete ERD database specification committed covering all 25 Section 16 tables and 12 Vexora extra tables (`docs/database/erd.md`).
+  - Authoritative OpenAPI 3.0 specification covering all Section 17 `/v1` endpoint groups (`docs/api/openapi.yaml`).
+  - Comprehensive STRIDE threat model committed (`docs/threat-models/STRIDE-auth-wallet-results.md`).
+  - Playwright E2E browser tests passing for UI Kit and Web Landing (`tests/e2e/ui-kit.spec.js`).
+  - 32/32 unit tests passing, 3/3 Playwright browser tests passing, zero secrets exposed.
+- **Phase 5: Backend Core Skeleton**
+  - All 21 domain module routers implemented and mounted under `/api/v1/*` in `backend/src/server.js` (`auth`, `users`, `games`, `teams`, `organisers`, `tournaments`, `matches`, `scoring`, `leaderboards`, `wallet`, `redeem`, `payouts`, `disputes`, `moderation`, `notifications`, `admin`, `audit`, `support`, `achievements`, `risk`, `webhooks`).
+  - Structured JSON logging with Winston, request correlation ID propagation (`X-Correlation-ID`, `X-Request-ID`), and automated PII redaction for phone, email, password, token, and secret fields (`backend/src/common/logger.js`, `correlationId.js`).
+  - Cursor-based forward-only pagination helper with Base64 URL-safe tokens over UUIDv7 + timestamp columns (`backend/src/common/pagination.js`).
+  - Idempotency middleware with replay detection and duplicate mutation prevention (`backend/src/common/idempotency.js`).
+  - Global rate limiting, auth rate limiting, and redeem code rate limiting configured (`backend/src/common/rateLimiter.js`).
+  - Background worker infrastructure using BullMQ with retry logic and exponential backoff (`backend/src/common/workers.js`).
+  - Health check endpoint `/api/v1/health` and OpenAPI specification endpoint `/api/v1/docs/openapi.json`.
+  - Global error handling with deny-by-default security, operational error formatting, and internal leak prevention (`backend/src/common/errorHandler.js`).
+  - 40/40 unit and domain tests passing cleanly across the monorepo.
+- **Phase 6: Database Foundation, Migrations & Tamper-Evident Audit Log**
+  - Migration `002_core_foundation_and_audit.sql` covering RBAC (roles/permissions), user devices, MFA factors, feature flags, and tamper-evident audit log triggers.
+  - Audit service (`backend/src/audit/audit.service.js`) with SHA-256 hash-chaining, Merkle root checkpointing, HMAC-signed checkpoints, and full chain verification.
+  - Database triggers forbidding UPDATE and DELETE on `audit_logs`.
+  - Least-privilege DB roles: `vexora_app_role`, `vexora_auditor_role`, `vexora_migration_role` with explicit REVOKE on immutable tables.
+  - Seed script (`infra/seeds/seed_core.js`) for RBAC roles, permissions, and feature flags (free_tournaments_only=true, real_money_wallet_enabled=false).
+  - Migration runner (`infra/migrations/migrate.js`) with checksum validation.
+  - 8/8 Phase 6 tests passing: migration validation, tamper triggers, least-privilege roles, hash binding, chain verification, tampering detection with SEV-1 alert, Merkle root, and seed validation.
+- **Phase 7: Authentication (Firebase + Vexora Tokens + Sessions)**
+  - Firebase Auth integration: backend verifies Firebase ID tokens and creates/links Vexora users (`backend/src/auth/auth.service.js`).
+  - Short-lived access tokens (15m) + long-lived refresh tokens (7d) with JWT rotation.
+  - **Session family tracking**: Each login creates a session family; token rotation stays within the family. Reuse of a rotated-out refresh token revokes the entire session family (security measure against token theft).
+  - **Device registry**: New devices are fingerprinted and logged; new-device alerts triggered; devices can be blocked (which also revokes linked sessions).
+  - Session management: list active sessions, revoke individual sessions, force-logout all sessions.
+  - **OTP throttling**: Per-phone (5/15min), per-IP (10/15min), and per-device (5/15min) rate limits on OTP send requests.
+  - Account lifecycle: email change (resets verification), phone change (resets verification), account deletion/anonymisation (30-day cooling-off, PII anonymised, all sessions revoked).
+  - Migration `003_auth_sessions_enhancement.sql`: session_family column, otp_throttle_log table, account_deletion_requests table, login_attempts table for brute-force tracking.
+  - Auth routes: `/register`, `/login`, `/firebase`, `/refresh`, `/logout`, `/sessions`, `/sessions/revoke-all`, `/devices`, `/send-otp`, `/me`, `/me/email`, `/me/phone`, `DELETE /me`.
+  - **Security gate**: OTP brute-force tests pass; refresh-reuse detection verified; no raw tokens in logs confirmed by source analysis.
+  - 21/21 Phase 7 tests passing. 37/37 total across all phases.
+- **Phase 8: RBAC, Row-Level Security & Permission Matrix**
+  - **Permission Matrix as Code**: Authoritative complete role × action matrix implemented in `backend/src/common/rbac.js` defining 8 domain roles (Player, Team Captain, Organiser, Moderator, Finance, Admin, Super Admin, Support Agent, Auditor) + 40+ granular module:action permissions with strict deny-by-default logic.
+  - **RBAC Middleware Layer**: Composable Express guards in `backend/src/common/rbac.middleware.js` (`requirePermission`, `requireAnyPermission`, `requireAllPermissions`, `denyRoles`, `adminGate`, `requireStepUpAuth`). Normal user tokens cannot pass `adminGate`.
+  - **Resource-Level Authorization (Anti-IDOR)**: `backend/src/common/resourceAuth.js` enforcing ownership checks on tournaments, teams, wallets, tickets, disputes, organiser profiles, and payout requests. Denied access returns HTTP 404 (not 403) to prevent resource enumeration.
+  - **Break-Glass Emergency Access**: `backend/src/common/breakGlass.js` providing time-boxed (max 4h) auto-expiring elevated privileges with mandatory justifications, SEV-1 audit-logged alerts, and self-approval prevention.
+  - **Maker-Checker Framework**: `backend/src/common/makerChecker.js` dual-approval workflow across high-risk actions (payouts, wallet adjustments, batch codes, bans, feature flags). Invariant: creator cannot approve own request (`maker_id !== checker_id`).
+  - **Row-Level Security (RLS)**: Migration `004_rbac_rls_policies.sql` enforcing database-level RLS policies on 10 tables (`users`, `tournaments`, `wallet_accounts`, `ledger_transactions`, `teams`, `support_tickets`, `disputes`, `notifications`, `payout_requests`, `organiser_profiles`) with `FORCE ROW LEVEL SECURITY`, plus DB check constraints `chk_break_glass_self_approve` and `chk_maker_checker_self_approve`.
+  - **RBAC Database Seed**: `infra/seeds/seed_rbac.js` syncing code matrix definitions with database permissions and role_permissions tables.
+  - **Security gate**: Normal user token (`PLAYER`) strictly blocked by `adminGate` with 403 `ADMIN_REQUIRED`; cross-user IDOR access fails with 404; maker-checker blocks self-approval.
+  - 24/24 Phase 8 tests passing. 93/93 total tests passing across all suites.
+- **Phase 9: Admin Console Shell with Mandatory MFA**
+  - **Two-Step Admin Authentication with Mandatory MFA**: Built `/api/v1/auth/admin/login` and `/api/v1/auth/admin/mfa-verify`. Admin primary credentials check does NOT issue tokens; it issues a short-lived `mfa_challenge_token`. Only valid 6-digit TOTP MFA verification issues full tokens with `mfa_verified: true`.
+  - **Security gate**: Admin CANNOT sign in or receive session tokens without MFA (verified by unit test and Playwright E2E test).
+  - **Role-Based Navigation**: Responsive sidebar in `apps/admin/src/components/AdminShell.tsx` dynamically filtering navigation items by admin role (`SUPER_ADMIN`, `ADMIN`, `FINANCE`, `MODERATOR`, `AUDITOR`).
+  - **Security Headers & Clickjacking Protection**: `apps/admin/next.config.mjs` with enterprise CSP (`default-src 'self'`, `frame-ancestors 'none'`), HSTS (`max-age=63072000`), X-Frame-Options: `DENY`, X-Content-Type-Options: `nosniff`, Referrer-Policy, and Permissions-Policy.
+  - **CSRF & Origin Validation**: `apps/admin/src/middleware.ts` verifying frame protections and blocking untrusted cross-origin mutating requests with 403 `CSRF_BLOCKED`.
+  - **Admin Session Management**: Endpoints `/api/v1/admin/sessions`, `DELETE /sessions/:id`, and `POST /sessions/force-logout`, plus UI screen `apps/admin/src/app/sessions/page.tsx` for multi-device session inspection, individual revocation, and force-logout.
+  - **Read-Only Audit Log Viewer**: `apps/admin/src/app/audit/page.tsx` with cryptographic hash chain indicator ("Audit Chain Valid"), append-only guarantees, and immutable read-only constraints.
+  - **Runtime Feature Flags Screen**: `apps/admin/src/app/feature-flags/page.tsx` with hot-swapping toggles, Maker-Checker warning notices for money-related flags, and Step-Up MFA integration.
+  - **Step-Up Authentication Component**: `apps/admin/src/components/StepUpModal.tsx` and endpoint `/api/v1/auth/admin/step-up` for re-authenticating high-risk admin actions.
+  - 10/10 Phase 9 unit tests passing, 2/2 Phase 9 Playwright E2E tests passing. 103/103 total unit tests passing across all suites.
+- **Phase 10: Mobile App Shell (Flutter)**
+  - **Flutter 3.x Mobile Shell**: Installable cross-platform app shell with dark-mode first design tokens (`Electric Indigo` #6366F1), Material 3, and WCAG AA compliance (`apps/mobile/`).
+  - **State Management & Routing**: Flutter Riverpod state management (`auth_provider.dart`), dynamic RootNavigationRouter switching between splash, onboarding, authenticated HomeShell, and sign-in.
+  - **Hardware-Backed Secure Storage**: `SecureStorageService` using `FlutterSecureStorage` with Android `EncryptedSharedPreferences` (Keystore backed) and iOS `KeychainAccessibility.first_unlock` for zero-token leakage.
+  - **Multi-Language Localization**: Full localization scaffold with English (`en`), Hindi (`hi`), and Odia (`or`) translations covering onboarding, auth, navigation, and error states (`app_localizations.dart`).
+  - **App-Version Check & Enforcement**: Semantic version comparison service (`VersionService`) supporting mandatory hard updates (`updateMandatory`) and recommended soft updates.
+  - **Dual App Flavours**: First-class support for `AppFlavour.player` (Lobbies, Brackets, Matches, Profile) and `AppFlavour.organiser` (Console, Bracket Mgmt, Disputes, Results) with runtime toggle in profile.
+  - **Mobile Screens & Accessibility**: Onboarding carousel with `Semantics` tags, Sign-In screen (Phone OTP, Email, Google), Gamer Profile with in-game UID linking (BGMI, Free Fire), and dynamic HomeShell navigation.
+  - **Dio HTTP Client with Token Refresh Queue**: Automated `X-Correlation-ID` header injection, Bearer token injection, 401 interception, and mutex locking (`_isRefreshing`) to prevent thundering herd on token rotation.
+  - **Security Gate & Code Quality**: No secrets stored in app code; tokens stored only in Keystore/Keychain; `flutter analyze` 100% clean (0 errors, 0 warnings, 0 infos); `flutter test` passing; 111/111 monorepo tests passing.
+- **Phase 11: Games, Modes & Versioned Scoring Definitions**
+  - **Configurable Game Engine**: Dynamic game catalog supporting dynamic titles, modes, formats, team sizes, and platforms via `games` and `game_modes` tables (`backend/src/games/games.service.js`, `games.routes.js`).
+  - **Migration 005**: `infra/migrations/005_games_modes_scoring.sql` creating `game_modes`, `rule_templates`, enhancing `scoring_schemas` with version lineage (`previous_version_id`), tie-breakers, and evidence requirements.
+  - **No Silent Edits Trigger**: Database trigger `prevent_live_scoring_formula_mutation()` strictly forbidding in-place mutation of published scoring formulas; enforces semantic version increments with immutable history.
+  - **Deterministic Scoring Engine Package**: `@vexora/scoring-engine` (`packages/scoring-engine/`) implementing:
+    - BGMI Krafton 10-point system + 1 pt/kill
+    - Free Fire Booyah 12-point system + 1 pt/kill
+    - CODM Multiplayer Search & Destroy and Hardpoint scoring (3 match pts/win)
+    - Universal `calculateFormulaScore()` for configurable JSON formulas with strict **integer arithmetic invariant** (ADR-015 Invariant 1)
+    - Deterministic multi-match standings sorter `sortStandings()` executing ADR-015 tie-breaking hierarchies
+    - Automated result verification invariants (`verifyLobbyPlacementPoints`, `verifyCombatantKillCount`) per ADR-015 Invariant 3.
+  - **Interactive Scoring Simulator**: Organiser & Admin simulation tool (`simulateTournamentScoring`, POST `/api/v1/games/scoring/simulate`) allowing testing of scoring formulas on sample lobby combatants with live tie-break resolution before publishing.
+  - **Launch Games Seeded**: Fixed `infra/seeds/seed_games.sql` matching production schema; seeds BGMI, Free Fire MAX, and CODM with modes, rule templates, evidence requirements, and schemas (`bgmi_br_v1.0.0`, `freefire_br_v1.0.0`, `codm_mp_v1.0.0`).
+  - **Shared Validation Package**: Extended `@vexora/validation` (`packages/validation/src/index.ts`) with Zod schemas for Game, Mode, RuleTemplate, ScoringFormula, Versioning, and Simulation.
+  - **Admin Console UI**: Desktop console screen (`apps/admin/src/app/games/page.tsx`) with Games Catalog, Game Modes, Versioned Formulas, Interactive Scoring Simulator, and Version Increment modal with mandatory compliance reason.
+  - **Security Gate & Audit Trail**: Every mutating catalog action is audit-logged with the SHA-256 hash chain (`appendAuditLog`); RBAC permissions enforced (`GAMES_CREATE`, `GAMES_EDIT`, `GAMES_DELETE`, `GAMES_SCORING_MANAGE`); regular players blocked by `adminGate`.
+  - **Testing**: 129/129 unit tests passing (+18 Phase 11 tests), 7/7 Playwright E2E tests passing (+2 Phase 11 tests), `flutter analyze` 100% clean (0 issues), pre-commit secret scan clean (0 secrets).
+- **Phase 12: Player Profiles, In-Game IDs & Secure Upload Pipeline**
+  - **Database Migration 006**: `infra/migrations/006_player_profiles_and_uploads.sql` adding profile privacy controls (`profile_visibility: PUBLIC|PRIVATE|FRIENDS_ONLY`, `show_stats`, `show_game_ids`), `favourite_game_ids UUID[]`, `fair_play_score` (0-100 with CHECK constraint), `media_uploads` table with SHA-256 hash column and immutability trigger (`trg_immutable_media_upload`), Row-Level Security, and verification columns on `user_game_ids`.
+  - **Secure Upload Pipeline**: `backend/src/common/uploadPipeline.js` implementing Section 48 hostile-file defense:
+    - Deep magic-byte binary header inspection (JPEG, PNG, WebP, PDF, MP4) — extension-agnostic.
+    - Hostile content & polyglot script scanner rejecting SVG, PHP, `<script>`, `javascript:`, `<iframe>`, `onload/onerror`, `eval()`, `document.cookie`.
+    - EXIF/GPS metadata stripping and image re-encoding via `sharp`.
+    - SHA-256 ingress hashing for tamper-evident evidence chain.
+    - Malware test signature detection.
+    - HMAC-signed pre-signed upload tokens with random unguessable storage keys, date-partitioned paths, and path-traversal prevention.
+  - **Users Service**: `backend/src/users/users.service.js` implementing:
+    - `getPublicProfile()` with zero-leak data minimisation (never exposes phone/email/DOB/firebase_uid).
+    - `getOwnProfile()` with linked game IDs and verification status.
+    - `updateOwnProfile()` with audit logging of all changes.
+    - `linkInGameId()` with ADR-006 anti-smurfing uniqueness enforcement (409 `UID_ALREADY_LINKED` on duplicate).
+    - `unlinkInGameId()` with audit trail.
+    - `recordMediaUpload()` for SHA-256-hashed media tracking.
+  - **Users Routes**: `backend/src/users/users.routes.js` with endpoints: `GET /me`, `PATCH /me`, `GET /profile/:username`, `POST /me/game-ids`, `DELETE /me/game-ids/:gameId`, `POST /uploads/sign`, `POST /uploads/process` (multer memory storage), `GET /me/uploads`.
+  - **Validation Schemas**: `@vexora/validation` extended with `ProfileUpdateSchema`, `InGameIdLinkSchema` (injection-safe UID regex), `SignedUploadRequestSchema` (path-traversal-safe filename regex).
+  - **Flutter Mobile UI**: `apps/mobile/lib/screens/profile_screen.dart` with ConsumerWidget/Riverpod, linked game ID tiles with VERIFIED badges, privacy controls (Public Visibility, Display Linked IGNs), Link/Edit In-Game UID dialog referencing ADR-006, game selector (BGMI, Free Fire, CODM), and zero-leak data minimisation notice.
+  - **Security Gate**: Hostile-file tests pass (SVG, PHP, polyglot scripts, malware signature, oversized files, unrecognized binary formats all rejected). Signed upload token tamper detection verified. Magic-byte inspection ignores spoofed extensions. Path traversal attacks blocked.
+  - **Testing**: 207/207 unit tests passing (+78 Phase 12 tests), Playwright E2E profile/upload tests created, `flutter analyze` clean, pre-commit secret scan clean.
+- **Phase 13: Teams, Rosters & Transfer Log**
+  - **Database Migration 007**: `infra/migrations/007_teams_rosters_transfers.sql` extending `team_member_role` (`OWNER`, `MANAGER`), adding roster limits (`max_roster_size`, `min_roster_size`), `transfer_window_open`, `team_transfer_log` with immutability triggers forbidding UPDATE/DELETE, `team_blocks` anti-spam table, and unique index enforcing one OWNER per team.
+  - **Teams Service**: `backend/src/teams/teams.service.js` implementing:
+    - 5-tier role hierarchy: `OWNER (5) > CAPTAIN (4) > MANAGER (3) > PLAYER (2) > SUBSTITUTE (1)`.
+    - `canManageRoster` allowing only OWNER, CAPTAIN, MANAGER to manage rosters.
+    - Anti-smurfing / duplicate identity enforcement: player cannot be active in multiple teams for the same game title.
+    - Consent-based membership: players can only be added to a team upon explicit invitation acceptance.
+    - Anti-spam & rate limiting: max 20 pending invites per team, max 10 invites per user per hour.
+    - Team block list prevents unwanted spam invitations.
+    - Invariant: team owner cannot leave voluntarily without transferring ownership or disbanding.
+    - Invariant: only team owner can assign leadership roles (`CAPTAIN`, `MANAGER`).
+    - Rank check on kick: cannot kick a member of equal or higher rank.
+    - Public append-only transfer log records every transition (`TEAM_CREATED`, `JOINED`, `LEFT`, `KICKED`, `PROMOTED`, `DEMOTED`, `TEAM_DISBANDED`).
+  - **Teams Routes**: `backend/src/teams/teams.routes.js` providing 16 endpoints mounted under `/api/v1/teams`: `POST /`, `GET /my`, `GET /invitations`, `POST /invitations/:id/respond`, `GET /history`, `GET /:id`, `PATCH /:id`, `POST /:id/invite`, `POST /:id/leave`, `POST /:id/kick`, `PATCH /:id/members/:userId/role`, `POST /:id/transfer-ownership`, `POST /:id/disband`, `GET /:id/transfer-log`, `POST /:id/block`, `DELETE /:id/block/:userId`.
+  - **Validation Schemas**: Extended `@vexora/validation` with 8 schemas: `TeamCreateSchema`, `TeamUpdateSchema`, `TeamInviteSchema`, `InviteResponseSchema`, `KickMemberSchema`, `RoleChangeSchema`, `OwnershipTransferSchema`, `TeamBlockSchema`.
+  - **Flutter Mobile UI**: `apps/mobile/lib/screens/teams_screen.dart` implementing:
+    - My Teams list with tag avatar, role badges, roster counts, and transfer window status.
+    - Pending Invitations tab with Accept and Decline actions.
+    - Create Team modal with tag validation, game dropdown, and roster size selector.
+    - Team Detail view with active lineup, jersey numbers, invite player dialog, and public transfer log.
+  - **Security Gate**: Invite spam limits (20 pending/team, 10/hr) and block list enforced; consent-based membership (no forced adds); roster management restricted to OWNER/CAPTAIN/MANAGER; rank hierarchy prevents kicking equals/superiors.
+  - **Testing**: 234/234 unit tests passing (+27 Phase 13 tests), Playwright E2E tests created (`tests/e2e/teams.spec.js`), `flutter analyze` 100% clean (0 issues), pre-commit secret scan clean (0 secrets).
+- **Phase 14: Seasons, Search & Filters**
+  - **Database Migration 008**: `infra/migrations/008_seasons_and_search_indexes.sql` creating `seasons` table, `idx_one_active_season_per_game` invariant, enabling `pg_trgm` and `unaccent`, full-text (to_tsvector) and trigram (gin_trgm_ops) search indexes on Games, Teams, Users (Players), Tournaments, Seasons, plus RLS policies.
+  - **Validation Schemas**: `SeasonCreateSchema`, `SeasonUpdateSchema`, `SearchQuerySchema` added to `@vexora/validation` in `packages/validation/src/index.ts`.
+  - **Seasons Service & Routes**: `backend/src/seasons/seasons.service.js` and `seasons.routes.js` with full lifecycle (UPCOMING, ACTIVE, COMPLETED, ARCHIVED), single-active-season invariant enforcement, and audit-logged mutations.
+  - **Search Engine**: `backend/src/search/search.service.js` and `search.routes.js` providing unified multi-entity search (`/api/v1/search`) and entity-specific searchers (`/games`, `/teams`, `/players`, `/tournaments`, `/seasons`).
+  - **Security Gate**: Strict projection whitelisting (`PUBLIC_PLAYER_FIELDS`) completely eliminates private PII leakage (no email, phone, firebase_uid, password_hash, device_id). Respects user privacy: filters out profiles where `profile_visibility = 'PRIVATE'`.
+  - **Launch Seasons Seeded**: `infra/seeds/seed_seasons.sql` creating inaugural competitive seasons for BGMI, Free Fire MAX, and CODM.
+  - **Flutter Mobile UI**: `apps/mobile/lib/screens/search_screen.dart` with instant search, category filters (All, Games, Seasons, Teams, Tournaments, Players), and privacy banner. Integrated search route into `HomeShell` AppBar.
+  - **Testing**: 257/257 unit tests passing (+23 Phase 14 tests), Playwright E2E tests created (`tests/e2e/seasons-search.spec.js`), `flutter analyze` 100% clean (0 issues), pre-commit secret scan clean (0 secrets).
+- **Phase 15: Tournament State Machine & Creation Wizard**
+  - **Database Migration 009**: `infra/migrations/009_tournament_state_machine_and_rules.sql` establishing:
+    - Canonical 11-state `tournament_status` enum: `DRAFT`, `PENDING_REVIEW`, `SCHEDULED`, `REGISTRATION_OPEN`, `CHECK_IN`, `LIVE`, `RESULT_PENDING`, `DISPUTED`, `COMPLETED`, `SETTLED`, `ARCHIVED`.
+    - `tournament_rules` table: versioned, append-only rules storage with audit metadata (`rule_json`, `rules_text`, `evidence_policy`, `disconnect_policy`, `tie_breaker_policy`, `change_summary`, `changed_by`).
+    - Immutability trigger `trg_immutable_tournament_rules` preventing UPDATE/DELETE on rules records.
+    - Launch constraint `chk_tournaments_v1_free_only` strictly enforcing `entry_fee_credits = 0` and `prize_pool_credits = 0`.
+    - Row-Level Security on `tournament_rules` with public read access and organiser/admin version append authorization.
+  - **Validation Schemas**: Extended `@vexora/validation` in `packages/validation/src/index.ts`:
+    - `TournamentStatus` & `TournamentFormat` enums covering all blueprint formats (`SINGLE_ELIMINATION`, `DOUBLE_ELIMINATION`, `ROUND_ROBIN`, `SWISS`, `BATTLE_ROYALE_LOBBY`, `LEAGUE`).
+    - `TournamentCreateSchema`: enforces v1 free-only (rejects entry fees / cash prize pools > 0), min <= max participants, future start time, chronological schedule ordering (`registration_open` < `registration_close` <= `check_in_open` <= `start_time`).
+    - `TournamentUpdateSchema`: partial update validator restricted to editable draft fields.
+    - `TournamentRuleUpdateSchema`: enforces mandatory descriptive `change_summary` (>= 5 chars) on all version bumps.
+    - `TournamentTransitionSchema`: validates requested lifecycle target states.
+  - **Tournaments Service & State Engine**: `backend/src/tournaments/tournaments.service.js` implementing:
+    - Pure transition validator `canTransition()` matching the 11-state transition matrix; rejects illegal skips, re-activations, or mutations from terminal states (`ARCHIVED`).
+    - Anti-IDOR enforcement: organiser can only edit and transition their own tournaments; queries return 404 rather than 403 to prevent tournament ID enumeration.
+    - Server-time authority: all schedule validations strictly use `new Date()` from server time; client timestamps are never trusted.
+    - Maker-Checker review workflow: transitioning from `PENDING_REVIEW` to `SCHEDULED` requires administrator approval.
+    - Comprehensive audit trail: every mutating operation records an audit log with actor ID, role, action, and IP hash.
+  - **Tournaments Routes**: `backend/src/tournaments/tournaments.routes.js` mounted at `/api/v1/tournaments`:
+    - `POST /` (Draft creation with Idempotency-Key and ORGANISER RBAC gate).
+    - `GET /:id` (Tournament detail with current versioned rules).
+    - `PATCH /:id` (Draft update in DRAFT/PENDING_REVIEW states with Anti-IDOR).
+    - `POST /:id/rules` (Versioned rule update bumping `rules_version`).
+    - `POST /:id/transition` (Lifecycle state transition).
+  - **Flutter Mobile Creation Wizard**: `apps/mobile/lib/screens/tournament_wizard_screen.dart`:
+    - Multi-step Stepper for the organiser flavour: Game & Mode, Format & Capacity, Schedule, Details, Policies & Rules, and Review & Submit.
+    - Enforces initial `DRAFT` status and displays v1 free-only policy banner.
+    - Full accessibility semantics on all form inputs and interactive pickers.
+  - **Admin Console Review Queue**: `apps/admin/src/app/tournaments/page.tsx`:
+    - Tournament review queue filtering tournaments in `PENDING_REVIEW` state.
+    - State machine inspector and interactive approval/rejection modal requiring mandatory reviewer comments.
+  - **Testing**: 295/295 unit tests passing (+38 Phase 15 tests), Playwright E2E security tests created (`tests/e2e/tournaments.spec.js`), `flutter analyze` 100% clean (0 issues), pre-commit secret scan clean (0 secrets).
+- **Phase 16: Discovery & Registration (with Concurrency Safety)**
+  - **Database Migration 010**: `infra/migrations/010_tournament_registrations_and_discovery.sql` introducing:
+    - Extended `registration_status` enum (`CONFIRMED`, `WAITLISTED`, `CANCELLED`).
+    - Enhanced `tournament_registrations` table with `participant_type` (`SOLO`, `TEAM`), `slot_number`, `waitlist_position`, `roster_locked`, and `roster` snapshot.
+    - Zero slot collision unique index `uq_tourn_slot_active` on active confirmed/checked-in participants.
+    - Single active registration invariants `uq_tourn_user_active` and `uq_tourn_team_active`.
+    - Composite discovery index `idx_tournaments_discovery` on `(status, start_time, game_id, format, visibility)` and waitlist ordering index `idx_tourn_reg_waitlist_order`.
+    - Row-Level Security policies on `tournament_registrations`.
+  - **Validation Schemas**: Added `RegistrationStatus`, `ParticipantType`, `TournamentRegisterSchema` (solo vs team, team_id requirement), `TournamentCheckInSchema`, and `TournamentDiscoveryQuerySchema` to `@vexora/validation`.
+  - **Registration & Concurrency Service**: `backend/src/tournaments/tournamentRegistrations.service.js` implementing:
+    - Concurrency-safe registration via PostgreSQL row-level locks (`SELECT ... FOR UPDATE`).
+    - Last-slot race resolution: exactly $N$ winners for $N$ capacity slots; losers are auto-placed on the waitlist with 1-indexed queue positions and are never charged.
+    - Auto-promotion from waitlist: when a confirmed participant cancels, waitlist candidate #1 is automatically promoted into the freed slot and the remaining queue is re-indexed.
+    - Roster locking upon player check-in during server-authoritative check-in windows.
+    - Anti-bot rate limiting enforcing max 5 registrations/minute per user (`429 REGISTRATION_RATE_LIMITED`).
+    - Multi-filter discovery with dynamic capacity calculation (`remaining_slots`, `is_full`), deep links (`vexora://tournaments/:slug`), and QR join payloads (`https://vexora.gg/t/:slug?ref=qr`).
+  - **Tournaments Routes Mounted**:
+    - `GET /api/v1/tournaments/discover` (Multi-filter public discovery with deep links & QR payloads).
+    - `GET /api/v1/tournaments/:id/participants` (Confirmed slots and waitlist roster).
+    - `GET /api/v1/tournaments/:id/my-registration` (User's active registration status).
+    - `POST /api/v1/tournaments/:id/register` (Concurrency-safe registration with idempotency).
+    - `POST /api/v1/tournaments/:id/cancel-registration` (Cancellation with auto-promotion).
+    - `POST /api/v1/tournaments/:id/check-in` (Player check-in with roster locking).
+  - **Flutter Mobile Discovery UI**: `apps/mobile/lib/screens/tournament_discovery_screen.dart`:
+    - Tournament discovery feed with game filter chips, capacity progress bars, and remaining slots trackers.
+    - Modal bottom sheet for Solo vs Team registration with waitlist fallback notices.
+    - Share dialog with QR code display and deep link copying.
+    - Check-in confirmation modal with roster lock notices.
+    - Mounted directly into `HomeShell` on the Tournaments tab.
+  - **Testing**: 314/314 unit tests passing (+19 Phase 16 tests), Playwright E2E tests updated (`tests/e2e/tournaments.spec.js`), `flutter analyze` 100% clean (0 issues), pre-commit secret scan clean (0 secrets).
+- **Phase 17: Bracket & Match Engine**
+  - **Database Migration 011**: `infra/migrations/011_bracket_and_match_engine.sql` establishing:
+    - Extended `match_status` enum with blueprint canonical states: `LOBBY_READY`, `LIVE`, `RESULT_SUBMITTED`, `CONFIRMED`.
+    - Enhanced `matches` table with `bracket_type`, `lobby_group_index`, `stage`, `participant_a_id`, `participant_b_id`, `winner_registration_id`, `loser_registration_id`, `next_match_id`, `bye_awarded`, `room_release_time`, `room_code_released_at`, `is_third_place`.
+    - Enhanced `match_participants` with `seed`, `is_bye`, `roster_locked_snapshot`, `check_in_confirmed`.
+    - Invariant constraints: `chk_distinct_match_participants` (no team vs self), `chk_match_number_positive`, `uq_match_tournament_position` (unique bracket position per tournament).
+    - Performance indexes: `idx_matches_tournament_round`, `idx_matches_room_release_time`, `idx_matches_next_match`.
+    - Row-Level Security on `matches` and `match_participants`.
+  - **Validation Schemas**: Extended `@vexora/validation` in `packages/validation/src/index.ts` with:
+    - `MatchStatus` enum (8 canonical states: SCHEDULED, LOBBY_READY, LIVE, RESULT_SUBMITTED, CONFIRMED, DISPUTED, FINAL, CANCELLED).
+    - `BracketType` enum (KNOCKOUT, DOUBLE_ELIMINATION, ROUND_ROBIN, LEAGUE, BATTLE_ROYALE_LOBBY, CUSTOM).
+    - `SeedingMethod` enum (STANDARD, RANDOM, MANUAL).
+    - `BracketGenerateSchema`, `MatchRoomUpdateSchema`, `MatchTransitionSchema`, `MatchParticipantScoreSchema`, `MatchResultSubmitDetailedSchema`.
+  - **Bracket & Match Engine Service**: `backend/src/matches/matches.service.js` implementing:
+    - **Knockout (Single Elimination)**: Standard seed-order pairing (`getStandardSeedOrder`) producing [1,16,8,9,4,13,5,12,2,15,7,10,3,14,6,11] for 16 slots. Automatic bye detection and auto-advancement to next round. `next_match_id` linkage for full tree traversal. Round stage labeling (ROUND_OF_16, QUARTER_FINALS, SEMI_FINALS, FINALS).
+    - **Round Robin (Berger Circle Algorithm)**: Complete all-play-all scheduling where every team faces every other team exactly once. Automatic BYE handling for odd participant counts.
+    - **Battle Royale Lobby Grouping**: Snake-seeded distribution across balanced lobbies (e.g., 48 squads into 3 lobbies of 16) with configurable matches-per-lobby.
+    - **Match State Machine**: 8 canonical states with `canTransitionMatch()` pure validator and backward-compatible legacy status mapping (`IN_PROGRESS` → `LIVE`, `RESULT_PENDING` → `RESULT_SUBMITTED`, `LOBBY_CREATED` → `LOBBY_READY`).
+    - **Winner Advancement**: `advanceKnockoutWinner()` propagating FINAL match winners into `next_match_id` participant slots (odd match → A, even match → B).
+    - **Room Code Security Engine**: `sanitizeMatchForUser()` implementing 4-tier room credential access control:
+      - **UNRESTRICTED_STAFF**: Organiser/Admin always see room codes regardless of release time.
+      - **RELEASED_VERIFIED**: Checked-in match participant after server release time sees unredacted room_id + room_password.
+      - **LOCKED_UNTIL_RELEASE_TIME**: Before release time, room_id and room_password are `null` for all non-staff.
+      - **RESTRICTED_TO_CHECKED_IN_PARTICIPANTS**: After release time but user not checked in or not a match participant, room codes are `null`.
+    - **Safe Push Payload Builder**: `buildMatchPushPayload()` strictly excluding `room_id` and `room_password` from push notification payloads (Section 47 invariant: room codes NEVER in push payloads).
+  - **Matches Routes**: `backend/src/matches/matches.routes.js` providing 9 endpoints mounted under `/api/v1/matches`:
+    - `POST /tournament/:id/generate-bracket` (Bracket generation with auth + RBAC).
+    - `GET /tournament/:id/bracket` (Complete bracket view with room sanitization).
+    - `GET /tournament/:id` (List matches with room sanitization).
+    - `GET /:id` (Single match detail with room sanitization).
+    - `PATCH /:id/room` (Set room ID, password, and release time — Organiser/Admin).
+    - `POST /:id/transition` (Match lifecycle state transition).
+    - `POST /:id/submit-result` (Submit match result with 15-min confirmation deadline).
+    - `POST /:id/confirm-result` (Confirm and finalize result with knockout advancement).
+    - `POST /:id/upload-evidence` (Evidence upload with SHA-256 hash chain).
+  - **Flutter Mobile Bracket UI**: `apps/mobile/lib/screens/bracket_screen.dart`:
+    - Interactive TabBar round selector (Round of 16, Quarterfinals, Semifinals, Grand Finals).
+    - Match cards with seed badges, combatant comparison, VS divider, score display, and winner checkmarks.
+    - Match state chips: SCHEDULED, LOBBY_READY, LIVE, RESULT_SUBMITTED, FINAL, DISPUTED, CANCELLED.
+    - BYE badge rendering for bye-awarded matches.
+    - 3-tier room credential tile: Unlocked (copy to clipboard), Locked until release time, Restricted to verified combatants.
+    - Security policy notice banner.
+    - `flutter analyze` 100% clean (0 errors, 0 warnings, 0 infos).
+  - **Next.js Web Bracket Component**: `apps/web/src/components/BracketViewer.tsx`:
+    - Interactive round tab navigation with match count indicators.
+    - Responsive 1-2 column match grid with dark esports aesthetic.
+    - Animated LIVE match status pulse, seed badges, bye chips, score comparison.
+    - Room credential banner with 3 security states: Unlocked, Timer-locked, Restricted.
+    - Security policy header banner.
+  - **Security Gate**:
+    - Room codes hidden until server release time (verified by unit test).
+    - Non-checked-in players denied room codes even after release time (verified by unit test).
+    - Checked-in match participants receive unredacted room credentials (verified by unit test).
+    - Organiser and Admin have unrestricted room access (verified by unit test).
+    - Room codes strictly excluded from push notification payloads (verified by unit test).
+    - All match state transitions audit-logged with actor, role, action, and IP hash.
+    - Anti-IDOR: organiser can only generate brackets/set rooms for own tournaments (404 on mismatch).
+  - **Testing**: 338/338 unit tests passing (+24 Phase 17 tests), Playwright E2E tests created (`tests/e2e/bracket-matches.spec.js`), `flutter analyze` 100% clean (0 issues), `flutter test` passing, pre-commit secret scan clean (0 secrets).
+- **Phase 18: Organiser Dashboard & Admin Tournament Review Queue**
+  - **Database Migration 012**: `infra/migrations/012_organiser_dashboard_and_incidents.sql` establishing:
+    - `tournament_announcements` table with `is_pinned` and `moderation_status` check constraints.
+    - `tournament_incident_logs` table (Section 43) with incident types (`LATE_START`, `DISCONNECT`, `RULE_CLARIFICATION`, `SUSPECTED_CHEATING`, `LOBBY_ISSUE`, `NO_SHOW`, `ROSTER_CONFLICT`, `OTHER`) and severities (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`).
+    - `tournament_matchday_checklists` table enforcing 5 canonical milestones (`LOBBY_CREATED`, `ROOM_DETAILS_RELEASED`, `CHECK_IN_VERIFIED`, `EVIDENCE_COLLECTED`, `RESULT_SUBMITTED`) and unique per-tournament constraints.
+    - Row-Level Security policies and performance indexes for operational queries.
+  - **Validation Schemas**: Extended `@vexora/validation` in `packages/validation/src/index.ts` with:
+    - `IncidentType`, `IncidentSeverity`, `IncidentStatus`, `ChecklistItemKey` enums.
+    - `TournamentAnnouncementCreateSchema` & `TournamentAnnouncementUpdateSchema`.
+    - `TournamentIncidentCreateSchema` & `TournamentIncidentResolveSchema`.
+    - `MatchdayChecklistUpdateSchema`.
+    - `TournamentAdminReviewSchema` (validating `APPROVE` vs `REJECT` with mandatory min 5-character reason).
+  - **Organiser Operations & Review Service**: `backend/src/organisers/organiserOperations.service.js` implementing:
+    - `getOrganiserDashboard`: aggregate metrics (active tournaments, checked-in players, open incidents, completion rates).
+    - `getTournamentOperations`: detailed tournament operations center with roster counts, match summary, and operational tabs.
+    - `getOrInitChecklist`: auto-seeds the 5 canonical Section 43 matchday milestones.
+    - `updateChecklistItem`: checklist state updates with SHA-256 audit-chain logging.
+    - `createAnnouncement` & `listAnnouncements`: participant broadcast channel with pinned-first ordering and moderation filter.
+    - `logIncident` & `resolveIncident`: incident reporting and resolution workflow with actor audit trail.
+    - `getPendingReviewQueue`: admin queue of tournaments in `PENDING_REVIEW` with organiser trust tiers.
+    - `reviewTournament`: admin approval transitions `PENDING_REVIEW` → `SCHEDULED`; admin rejection transitions `PENDING_REVIEW` → `DRAFT` (requiring mandatory reason and recording audit logs).
+    - Anti-IDOR enforcement: organisers can only operate tournaments they own (throws 404 to prevent resource enumeration).
+  - **Backend Routes**:
+    - `organisersRouter` mounted at `/api/v1/organisers` with 9 operational and review endpoints.
+    - `tournamentsRouter` enhanced with `/admin/review-queue` and `/:id/admin-review`.
+  - **Flutter Mobile Organiser Dashboard**: `apps/mobile/lib/screens/organiser_dashboard_screen.dart`:
+    - Tournament selector and active operational metrics banner (Confirmed, Checked In, Waitlist, Incidents).
+    - 4 operational tabs: Match-Day Checklist (Section 43), Announcements Broadcasts, Incident Log, Participant Roster.
+    - Broadcast Announcement modal with Pinned toggle.
+    - Log Tournament Incident modal with type and severity pickers.
+    - Seamless linkage to `BracketScreen` for room credentials and `TournamentWizardScreen` for creation.
+    - Integrated directly into `HomeShell` for the organiser flavour.
+    - `flutter analyze` 100% clean (0 errors, 0 warnings, 0 infos).
+  - **Admin Web Tournament Review Page**: `apps/admin/src/app/tournaments/page.tsx`:
+    - Review queue filtering `PENDING_REVIEW` events.
+    - Approval and Rejection modals with mandatory reason validation.
+    - Inspection modal with 5-point matchday checklist preview and Security Gate audit guarantee banner.
+  - **Web Organiser Console**: `apps/web/src/components/OrganiserConsole.tsx` & `apps/web/src/app/organiser/page.tsx`:
+    - Desktop web workspace with live operational metrics, Section 43 checklist toggles, announcement broadcasts, and incident logging.
+  - **Security Gate**:
+    - Organisers strictly CANNOT publish public tournaments until approved (state machine forbids DRAFT → SCHEDULED and DRAFT → REGISTRATION_OPEN).
+    - All admin approval and rejection actions are cryptographically hash-chained and audit-logged with reviewer ID and reason.
+    - Non-admin users are strictly rejected with 403 `ADMIN_REQUIRED`.
+    - Cross-organiser IDOR access returns 404 `TOURNAMENT_NOT_FOUND`.
+  - **Testing**: 356/356 unit tests passing (+18 Phase 18 tests), Playwright E2E security tests created (`tests/e2e/phase18-organiser-lifecycle.spec.js`), `flutter analyze` 100% clean (0 issues), `flutter test` passing, pre-commit secret scan clean (0 secrets).
+- **Phase 19: Result Submission & Evidence**
+  - **Database Migration 013**: `infra/migrations/013_match_results_and_evidence.sql` establishing:
+    - `match_results` table storing versioned submissions (`version`, `confirmation_status`, `is_adjudicated`, `participants_scores`, `evidence_sha256`, `evidence_url`, `idempotency_key`).
+    - `match_dispute_stubs` table storing conflict holds (`settlement_frozen = TRUE`, `status`, `reason`, `resolution_notes`).
+    - Immutability trigger `prevent_finalized_result_mutation()` enforcing tamper-proof results (`IMMUTABILITY VIOLATION: Finalized match result cannot be updated in-place; create new version`).
+    - Fast query indexes on `match_id`, `(match_id, version DESC)`, `(match_id, confirmation_status)`, `evidence_sha256`, and dispute stubs.
+    - Row-Level Security policies ensuring public read transparency and restricted dispute moderation access.
+  - **Validation Schemas**: Extended `@vexora/validation` in `packages/validation/src/index.ts` with:
+    - `ResultConfirmationStatus` enum (`PENDING_CONFIRMATION`, `CONFIRMED`, `DISPUTED`, `ADJUDICATED`, `REJECTED`).
+    - `CombatantScoreSchema` (placement, kills, deaths, assists, points, winner tag).
+    - `MatchResultSubmissionSchema` (UUID match_id, non-empty participants array, 64-character hex SHA-256 evidence ingress seal).
+    - `MatchResultConfirmationSchema` (`CONFIRM` vs `CONTEST` with mandatory min 5-character `contest_reason` when contesting).
+    - `MatchResultAdjudicationSchema` (staff adjudication, official referee reason, winner registration UUID).
+    - `ResultReplayChecklistSchema` (4 canonical criteria booleans).
+  - **Result Submission Service**: `backend/src/matches/resultSubmission.service.js` implementing:
+    - `getReplayChecklist`: 4-point guided capture criteria (scoreboard, kills breakdown, room watermark, player UIDs).
+    - `submitResult`: idempotency key deduplication; ingress SHA-256 seal verification; opposing combatant score agreement auto-finalization (`doScoresAgree`); automatic conflict hold on discrepancy (`settlement_frozen = true`, `status = DISPUTED`).
+    - `confirmResult`: Maker-Checker security invariant (submitter CANNOT confirm own result; throws `SELF_CONFIRMATION_FORBIDDEN`); opposing confirmation advances knockout bracket winner; opposing contest triggers dispute hold.
+    - `adjudicateResult`: strict RBAC gate (`FORBIDDEN_ROLE` for non-staff); resolves dispute stub, unfreezes settlement, creates immutable versioned result row (`source: 'STAFF_ADJUDICATED'`), and transitions match to `FINAL`.
+    - `getResultHistory`: versioned historical audit trail of submissions and staff resolutions.
+  - **Backend Routes**: Mounted in `matchesRouter`:
+    - `POST /api/v1/matches/:id/submit-result`
+    - `POST /api/v1/matches/:id/confirm-result`
+    - `POST /api/v1/matches/:id/adjudicate-result`
+    - `GET /api/v1/matches/:id/result-history`
+    - `GET /api/v1/matches/:id/evidence-checklist`
+  - **Flutter Mobile Result Screen**: `apps/mobile/lib/screens/result_submission_screen.dart`:
+    - 4-point guided evidence capture checklist with interactive toggles.
+    - Combatant score entry form (placement, kills, assists, notes).
+    - Cryptographic SHA-256 ingress checksum copy & display.
+    - 15-minute countdown deadline banner before auto-forfeit protocol.
+    - Dispute hold & settlement freeze alert banner.
+    - Opponent maker-checker confirmation vs contest workflow.
+    - Integrated into `BracketScreen` and `HomeShell` (`_PlayerMatchesScreen`).
+    - Analyzed with official Dart MCP (`dart-mcp-server` `analyze_files`): 0 errors, 0 warnings.
+  - **Web Result Submission Modal**: `apps/web/src/components/ResultSubmissionModal.tsx` & `BracketViewer.tsx`:
+    - Modal with 4-point checklist, 15m timer, placement & kills inputs, SHA-256 seal, and dispute hold banner.
+    - Integrated directly into web `BracketViewer` match card action bar.
+  - **Security Gate**:
+    - Maker-Checker invariant: Submitting player cannot confirm own result (`SELF_CONFIRMATION_FORBIDDEN`).
+    - Non-staff adjudication blocked with `FORBIDDEN_ROLE`.
+    - Conflict immediately triggers automatic settlement hold (`settlement_frozen = true`).
+    - Immutability trigger prevents updates or deletions to finalized results.
+  - **Testing**: 380/380 unit tests passing (+24 Phase 19 tests), Playwright E2E security tests created (`tests/e2e/phase19-result-lifecycle.spec.js`), `dart-mcp-server` analysis 100% clean (0 issues), pre-commit secret scan clean (0 secrets).
+- **Phase 20: Scoring Engine & Leaderboards**
+  - **Database Migration 014**: `infra/migrations/014_scoring_engine_and_leaderboards.sql` establishing:
+    - `leaderboard_entries` table: global & seasonal rank tracking with strict integer arithmetic constraints (`chk_lb_points_non_negative`, `chk_lb_rank_non_negative`, `uq_leaderboard_season_participant`).
+    - `season_stats` table: system of record for seasonal aggregate stats (`matches_played`, `wins`, `podiums`, `total_kills`, `total_placement_points`, `total_kill_points`, `total_points`, `average_placement`, `win_rate`, `current_rank`, `highest_rank`, `fair_play_score`).
+    - `leaderboard_snapshots` table: append-only historical rankings storage with cryptographic SHA-256 Merkle root seal (`merkle_root`).
+    - Immutability trigger `prevent_leaderboard_snapshot_mutation()` strictly preventing updates or deletions on snapshots.
+    - Row-Level Security policies with public read access across competitive leaderboard tables.
+  - **Single Database Transaction & Service**: `backend/src/leaderboards/leaderboardTransaction.service.js` implementing:
+    - `processMatchResult`: executes entire competitive update in a single atomic database transaction (`scores -> season stats -> deterministic standings -> immutable snapshot -> audit log -> cache invalidation`). If any step fails, entire transaction rolls back.
+    - Deterministic tie-breaking using `@vexora/scoring-engine` (`sortStandings` enforcing ADR-015 rules for BGMI, Free Fire, and CODM).
+    - `getLeaderboard`: dual-layer caching (Redis with 60s TTL + in-memory Map fallback) with cursor pagination and top-3 podium extraction.
+    - `getUserRanks`: player performance standing across all active titles and seasons.
+    - `getSnapshots` & `createManualSnapshot`: verifiable historical points-in-time snapshots with SHA-256 Merkle root.
+  - **Leaderboards Routes**: `backend/src/leaderboards/leaderboards.routes.js` mounted at `/api/v1/leaderboards`:
+    - `GET /` (multi-filter public leaderboard with cursor pagination).
+    - `GET /me` (authenticated player's rank across games).
+    - `GET /snapshots/:gameId` (historical immutable snapshots with cryptographic seals).
+    - `POST /process-match-result` (single DB transaction processing with Idempotency).
+    - `POST /snapshots` (manual snapshot capture with audit log).
+    - `GET /:gameSlug` & `GET /:gameSlug/seasons/:seasonId` (per-game and per-season leaderboards).
+  - **Validation Schemas**: Extended `@vexora/validation` with `LeaderboardTimeframe`, `LeaderboardSnapshotType`, `LeaderboardQuerySchema`, `ProcessMatchResultSchema`, `LeaderboardSnapshotCreateSchema`.
+  - **@vexora/scoring-engine Enhancements**:
+    - `previewScore`: client-side read-only score estimator for instant UI feedback on web and mobile.
+    - `computeStandingsDigest`: deterministic SHA-256 hash digest of standings for tamper-evident snapshots.
+    - `reproduceMatchScore`: verified 100% reproducibility of finalised scores from stored raw inputs.
+    - Package documentation & changelog authored (`packages/scoring-engine/CHANGELOG.md`).
+  - **Flutter Mobile Leaderboard Screen**: `apps/mobile/lib/screens/leaderboard_screen.dart`:
+    - Top 3 Podium widget (Gold, Silver, Bronze pedestals with avatars and trophy chips).
+    - Game selector TabBar (BGMI, Free Fire MAX, Call of Duty Mobile).
+    - Season status filter banner and competitor counter.
+    - Ranked scrollable list with rank badges, kills, win rate %, and total points.
+    - Sticky "Your Current Standing" bottom bar with quick points delta.
+    - "Verify Scoring Formula & Hash" modal displaying ADR-015 rules and cryptographic seal.
+    - Integrated into `HomeShell` AppBar; analyzed with official Dart MCP (`dart-mcp-server` `analyze_files`): 0 errors, 0 warnings.
+  - **Next.js Web Leaderboard Component & Page**: `apps/web/src/components/LeaderboardViewer.tsx` & `apps/web/src/app/leaderboard/page.tsx`:
+    - Dark esports aesthetic with WCAG AA compliance.
+    - Game tabs, search filter, season selector, podium cards, and responsive standings table.
+    - Interactive "Verify Scoring Formula" modal detailing Krafton/Booyah tie-breaking rules and SHA-256 Merkle root integrity.
+  - **Security Gate & Testing**:
+    - Mutation tests: negative kills clamped to zero, missing formulas rejected, unmapped placements yield 0 placement points.
+    - Property tests: integer-only arithmetic invariant across 100 randomized inputs, monotonicity with kill counts, standings sort determinism across 50 shuffle runs.
+    - Exit criteria: Hand-calculated examples verified for BGMI, Free Fire MAX, and CODM; 100% reproducibility from stored inputs verified.
+    - 402/402 monorepo unit and domain tests passing (+22 Phase 20 tests).
+    - Playwright E2E security tests created (`tests/e2e/phase20-leaderboards.spec.js`).
+    - Pre-commit secret scan passing with 0 secrets detected.
+- **Phase 21: Player Dashboard & "Verify This Result" Page**
+  - **Player Performance Identity & Service**: `backend/src/users/playerDashboard.service.js` implementing:
+    - `getPlayerDashboard(identifier, viewer, gameId)`: aggregate career statistics (matches, wins, podiums, total kills, average placement, points/match, win rate %, recent form sequence of last 10 competitive outcomes, tournament history, and team roster affiliations).
+    - `verifyMatchResult(matchId)`: public, tamper-evident match verification certificate with deterministic SHA-256 seal, evidence file ingress hashes, formula version, and settlement status.
+    - `generateShareablePassport(username, stats)`: exportable competitive passport metadata with QR verification payload.
+  - **Routes Mounted**:
+    - `usersRouter`: `GET /api/v1/users/me/dashboard` and `GET /api/v1/users/profile/:username/dashboard`.
+    - `matchesRouter`: `GET /api/v1/matches/:id/verify`.
+  - **Validation Schemas**: Added `PlayerDashboardQuerySchema` and `ResultVerificationQuerySchema` to `@vexora/validation`.
+  - **Flutter Mobile**:
+    - `apps/mobile/lib/screens/player_dashboard_screen.dart`: Player performance passport card, QR code simulation modal, stat chips (Win Rate, K/D, Avg Placement, Fair-Play Score), Recent Form streak pills, Tournament History list, and "Verify Result" deep link sheet.
+    - Linked into `apps/mobile/lib/screens/profile_screen.dart` via "Performance Dashboard & Passport" button.
+    - Analyzed with official Dart MCP (`dart-mcp-server` `analyze_files`): 0 errors, 0 warnings.
+  - **Next.js Web Portal**:
+    - `apps/web/src/components/PlayerDashboardViewer.tsx` & `apps/web/src/app/dashboard/page.tsx`: Performance dashboard viewer with stat cards, recent form streak pills, tournament history, and shareable passport modal with QR preview.
+    - `apps/web/src/components/ResultVerificationViewer.tsx` & `apps/web/src/app/verify/[matchId]/page.tsx`: Public "Verify This Result" page featuring SHA-256 seal verification, cryptographic evidence ledger, Krafton/Booyah scoring formula version, and immutable audit badge.
+  - **Security Gate (Data Minimisation)**:
+    - Strict privacy settings enforcement: if `profile_visibility === 'PRIVATE'` and the viewer is not the profile owner or platform admin/moderator, all competitive statistics, recent form, tournament history, and game UIDs are suppressed, returning `isPrivate: true` and `statsHidden: true`.
+    - `show_stats === false` hides performance numbers even if profile is set to public.
+  - **Testing**:
+    - 415/415 monorepo unit and domain tests passing (+13 Phase 21 tests in `tests/unit/phase21-player-dashboard-verify.test.js`).
+    - Playwright E2E security tests added (`tests/e2e/phase21-dashboard-verify.spec.js`).
+    - Pre-commit security & secret scan passed cleanly (0 secrets detected).
+- **Phase 22: Organiser Verification & Tiers**
+  - **Database Migration 015**: `infra/migrations/015_organiser_verification_and_tiers.sql`:
+    - `organiser_kyc_applications`: Isolated secure storage for KYC submissions with front document SHA-256 seal, AES-256 field-level encrypted sensitive PII (`contact_phone_encrypted`, `id_document_number_encrypted`, `tax_id_encrypted`, `address_encrypted`), and status lifecycle (`PENDING`, `IN_REVIEW`, `APPROVED`, `REJECTED`, `RESUBMISSION_REQUESTED`).
+    - `organiser_profiles` enhancements: `publishing_held`, `publishing_hold_reason`, `publishing_hold_at`, `tier_updated_at`, `verified_at`, `dispute_rate`, `max_concurrent_tournaments`, `max_participants_cap`.
+    - `kyc_access_logs`: Immutable audit journal recording every viewing of private KYC documents with mandatory `access_reason`, actor ID, role, and IP address. Trigger `prevent_kyc_log_mutation()` blocks updates and deletions.
+    - `v_organiser_public_trust`: Public sanitised view projecting trust metrics with zero private KYC data leakage.
+    - Row-Level Security: Moderators and players are strictly prohibited from selecting or updating `organiser_kyc_applications`.
+  - **Backend Service**: `backend/src/organisers/organiserVerification.service.js`:
+    - `submitApplication`: Validates input, encrypts sensitive fields, stores front doc SHA-256 hash, updates status to `PENDING`.
+    - `getPublicProfile`: Sanitised public trust indicators (completed, cancelled, disputed, trust score, dispute rate, verified date, tier).
+    - `getApplicationForReview`: Security Gate enforcing role boundary (Moderators blocked with `FORBIDDEN_ROLE`), requiring non-empty justification (`REASON_REQUIRED`), recording access in `kyc_access_logs`, and decrypting fields for reviewer.
+    - `reviewApplication`: Admin decision (`APPROVE`, `REJECT`, `REQUEST_RESUBMISSION`). On approval, promotes tier to `VERIFIED` and sets higher participant (256) and concurrent tournament (5) caps.
+    - `validatePublishingEligibility`: Enforces tier participant caps (Starter capped at 32), concurrent active tournaments (Starter capped at 1), and blocks held organisers with `PUBLISHING_HELD`.
+    - `evaluateDisputeRateHold`: Automatically places organiser on publishing hold if dispute rate exceeds 5.0% threshold or trust score falls below 70.0.
+    - `updateTier` & `setPublishingHold`: Administrative controls with full audit logging.
+  - **API Routes Mounted**:
+    - `organisersRouter`: `POST /apply`, `GET /me/application`, `GET /me/publishing-eligibility`, `GET /:id`, `GET /:id/public`, `GET /admin/applications`, `GET /admin/applications/:id`, `POST /admin/applications/:id/review`, `PATCH /admin/:id/tier`, `POST /admin/:id/publishing-hold`.
+  - **Flutter Mobile**:
+    - `apps/mobile/lib/screens/organiser_verification_screen.dart`: Visual Tier status card (`STARTER`, `VERIFIED`, `PARTNER`), public trust indicators card (Trust Score, completed, cancelled, disputed, dispute rate %), tier capabilities matrix (Section 10), and multi-step KYC Application wizard with interactive document capture and SHA-256 seal computation.
+    - Linked into `apps/mobile/lib/screens/organiser_dashboard_screen.dart` via "Tier & KYC" button in header.
+    - Analyzed with official Dart MCP (`dart-mcp-server` `analyze_files`): 0 errors, 0 warnings.
+  - **Admin & Web Consoles**:
+    - `apps/admin/src/app/organisers/page.tsx`: Admin review queue for KYC applications, security gate modal with mandatory audited access reason requirement, field-level decrypted document view, Maker-Checker approve/reject actions, and tier adjustment / publishing hold toggles.
+    - `apps/web/src/components/OrganiserTrustBadge.tsx`: Public trust badge showing Tier, completed count, dispute rate %, and public trust certificate modal.
+  - **Security Gate & Testing**:
+    - Security Gate: Moderators and players strictly blocked from KYC inspection (`FORBIDDEN_ROLE`).
+    - Security Gate: Missing justification rejected with `REASON_REQUIRED` and access logged to `kyc_access_logs`.
+    - Security Gate: Public trust profile never leaks private KYC documents, phone numbers, or ID numbers.
+    - Exit Criteria: Starter tier capped at 32 participants and 1 active tournament; publishing hold strictly blocks publishing; automated hold triggers on dispute rate > 5.0%.
+    - 433/433 monorepo unit and domain tests passing (+18 Phase 22 tests in `tests/unit/phase22-organiser-verification.test.js`).
+    - Playwright E2E security tests created (`tests/e2e/phase22-organiser-verification.spec.js`).
+    - Pre-commit secret scan passing with 0 secrets detected.
+- **Phase 23: Reports, Disputes, Moderation & Sanctions**
+  - **Database Migration 016**: `infra/migrations/016_reports_disputes_sanctions_and_risk.sql`:
+    - `reports` table across target types (`PLAYER`, `TEAM`, `ORGANISER`, `MATCH_RESULT`, `CHAT_MESSAGE`) with categories (`CHEATING_OR_EXPLOITS`, `TOXICITY_OR_HARASSMENT`, `FALSE_OR_TAMPERED_RESULT`, `ORGANISER_NO_SHOW`, `PAYMENT_OR_PRIZE_ISSUE`, `OTHER`), evidence SHA-256 ingress hashes, and status tracking (`PENDING`, `IN_REVIEW`, `RESOLVED`, `DISMISSED`). Unverified claim invariant enforced.
+    - `disputes` table with human-readable case IDs (`DSP-YYYYMMDD-XXXX`), evidence SHA-256 hashes, immediate match settlement freeze (`settlement_frozen = true`), 24-hour SLA timer (`sla_expires_at`), cited mandatory policy clause (`policy_clause`), and 48-hour appeal window (`appeal_window_expires_at`).
+    - `dispute_appeals` table with Maker-Checker constraint (`CHECK (appeal_decision_by IS NULL OR appeal_decision_by <> appellant_id)`), grounds, and resolution statuses (`PENDING`, `UPHELD`, `OVERTURNED`, `MODIFIED`).
+    - `sanctions` table with 4-tier sanction ladder (`WARNING`, `RESTRICTION`, `SUSPENSION`, `BAN`), target scoping, duration, and mandatory policy clause citation.
+    - `risk_signals` table prioritizing review queues with automatic score adjustments while enforcing the anti-auto-ban mandate.
+    - `moderation_action_logs` immutable audit trail with `prevent_moderation_log_mutation()` trigger preventing updates and deletes.
+  - **Backend Moderation Service**: `backend/src/moderation/disputeModeration.service.js`:
+    - `createReport`: Ingress hashing of evidence, non-punitive pending state.
+    - `createDispute`: Human-readable case ID generation, immediate atomic `settlement_frozen = true` and `status = 'DISPUTED'` on matches, 24h SLA.
+    - `adjudicateDispute`: Ruling requiring mandatory `policy_clause`, settlement unfreeze or voiding, and initiates 48h appeal countdown.
+    - `submitAppeal`: Validates 48-hour appeal window (rejects if expired).
+    - `decideAppeal`: Strict Maker-Checker invariant — the moderator who authored the original ruling is forbidden from deciding the appeal (`403 SELF_APPEAL_DECISION_FORBIDDEN`).
+    - `applySanction`: Enforces sanction ladder (`WARNING` -> `BAN`) requiring policy clause citations.
+    - `ingestRiskSignal`: Enforces anti-auto-ban rule (signals prioritize moderation queue, never auto-ban).
+  - **API Routes Mounted**:
+    - `disputesRouter`: `POST /`, `GET /`, `GET /:id`, `POST /:id/appeal`.
+    - `moderationRouter`: `POST /reports`, `GET /queue`, `POST /disputes/:id/ruling`, `POST /disputes/:id/appeal-decision`, `POST /sanctions`, `POST /risk-signals`.
+  - **Flutter Mobile**:
+    - `apps/mobile/lib/screens/dispute_moderation_screen.dart`: Case ID tracker, settlement freeze banner, 24-hour SLA countdown, cryptographic evidence ledger with SHA-256 seals, cited policy clause badge, and 48-hour Maker-Checker appeal submission modal.
+    - Verified with `dart-mcp-server` `analyze_files`: 0 errors, 0 warnings.
+  - **Admin & Web Consoles**:
+    - `apps/admin/src/app/disputes/page.tsx`: Dispute review queue, SLA countdowns, evidence viewer, policy clause macros, adjudication modal with settlement toggle, and Maker-Checker appeal queue.
+    - `apps/web/src/components/DisputeBanner.tsx`: Match dispute freeze banner and link to status modal.
+  - **Security Gate & Testing**:
+    - Maker-Checker invariant verified: Initial ruling author blocked from appeal adjudication.
+    - Immediate settlement freeze verified on match dispute creation.
+    - 48-hour appeal window expiration strictly enforced.
+    - 450/450 monorepo unit and domain tests passing (+17 Phase 23 tests in `tests/unit/phase23-disputes-moderation.test.js`).
+    - Playwright E2E security tests created (`tests/e2e/phase23-disputes-moderation.spec.js`).
+    - Pre-commit secret scan passing with 0 secrets detected.
+- **Phase 24: Ratings, Reputation & Security Centre v1**
+  - **Database Migration 017**: `infra/migrations/017_ratings_reputation_and_security_centre.sql`:
+    - `organiser_ratings`: Post-tournament organiser ratings with 3-dimensional scoring (Communication 1-5, Schedule 1-5, Result 1-5), deterministic overall score, review text, verified participant tracking, and `prevent_organiser_rating_deletion()` trigger blocking direct review deletion by organisers.
+    - `organiser_rating_appeals`: Review dispute appeals with grounds (`DEMONSTRABLY_FALSE`, `ABUSIVE_OR_HARASSMENT`, `PERSONAL_INFO_DOXXING`, `EXTORTION_OR_SPAM`), evidence hashes, and moderator review.
+    - `blocked_ips`: Active firewall table with threat levels (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), expiration, and audit trail.
+    - `login_attempts` enhancements: `failure_reason`, `user_agent`, `ip_address` forensic logging.
+    - `v_organiser_reputation_summary`: Public view calculating sample size and dimension averages.
+  - **Backend Services**:
+    - `backend/src/ratings/ratings.service.js`: `submitOrganiserRating` with tournament completion & participant verification, deterministic overall calculation, and anti-punishment invariant (ratings alone never trigger automatic bans or demotions); `getOrganiserRatings` with sample size and dimensional averages; `appealRating` (marks review `FLAGGED`); `adjudicateAppeal` (moderator decision `UPHELD` -> `REMOVED` or `REJECTED` -> `VISIBLE`); `reportParticipant` (creates non-punitive pending claim in `reports`).
+    - `backend/src/admin/securityCentre.service.js`: `getSecurityOverview`, `getFailedLogins`, `getBlockedIps`, `blockIp`, `unblockIp`, `getActiveAdminSessions`, `revokeAdminSession`, `getBreakGlassRequests`, `requestBreakGlass`, `adjudicateBreakGlass` with Maker-Checker dual authorization (`SELF_BREAK_GLASS_APPROVAL_FORBIDDEN` on self-approval), and `runAuditIntegrityCheck` verifying cryptographic SHA-256 hash chains and Merkle root seals.
+  - **API Routes Mounted**:
+    - `ratingsRouter`: `POST /api/v1/ratings/tournaments/:tournamentId`, `GET /api/v1/ratings/organisers/:organiserId`, `POST /api/v1/ratings/:id/appeal`, `POST /api/v1/ratings/appeals/:appealId/adjudicate`, `POST /api/v1/ratings/tournaments/:tournamentId/report-participant`.
+    - `adminRouter` (Security Centre v1): `GET /security/overview`, `GET /security/failed-logins`, `GET /security/blocked-ips`, `POST /security/blocked-ips`, `POST /security/blocked-ips/:id/unblock`, `GET /security/admin-sessions`, `DELETE /security/admin-sessions/:id`, `GET /security/break-glass`, `POST /security/break-glass`, `POST /security/break-glass/:id/decision`, `POST /security/audit-integrity`.
+  - **Flutter Mobile**:
+    - `apps/mobile/lib/screens/organiser_ratings_screen.dart`: Visual reputation card with sample size pill, overall star rating, 3 dimension breakdown progress bars, verified reviews list, "Rate Organiser" interactive sheet with sliders, review dispute appeal dialog, and participant conduct report sheet.
+    - Linked in `apps/mobile/lib/screens/home_shell.dart` AppBar actions.
+    - Analyzed with official Dart MCP (`dart-mcp-server` `analyze_files`): 0 errors, 0 warnings.
+  - **Admin & Web Consoles**:
+    - `apps/admin/src/app/security-centre/page.tsx` & `security/page.tsx`: Full Security Centre v1 dashboard with live threat metrics ribbon, Failed Logins feed, Blocked IPs firewall management modal, Active Admin Sessions with force revocation, Break-Glass emergency requests with Maker-Checker dual authorization guard, and Cryptographic Hash Chain Integrity runner.
+    - Verified Next.js production build: 14/14 static pages compiled successfully.
+    - `apps/web/src/components/OrganiserReviewsModal.tsx`: Public transparent reviews viewer modal with sample size, 3-dimensional ratings breakdown, and verified badges.
+  - **Security Gate & Testing**:
+    - Anti-Punishment invariant verified: ratings alone never trigger automatic punishment or ban.
+    - Maker-Checker invariant verified: requesting admin cannot approve their own break-glass request.
+    - Cryptographic chain integrity verified: SHA-256 hash chain verified with 0 broken links and detection of tampered records.
+    - 467/467 monorepo unit and domain tests passing (+17 Phase 24 tests in `tests/unit/phase24-ratings-security.test.js`).
+    - Playwright E2E security tests created (`tests/e2e/phase24-ratings-security.spec.js`).
+    - Pre-commit secret scan passing with 0 secrets detected.
+- **Phase 25: Double-Entry Ledger & Wallet Service**
+  - **Database Migration 018**: `infra/migrations/018_double_entry_ledger_and_wallet.sql`:
+    - Fixed system accounts: `PLATFORM_REVENUE`, `PLATFORM_ESCROW`, `ORGANISER_ESCROW` with check constraint preventing negative balances on user accounts (`CHECK (account_type = 'SYSTEM' OR available_balance >= 0)`).
+    - `wallet_adjustments`: Table with Maker-Checker dual authorization constraint (`chk_adjustment_maker_checker CHECK (checker_admin_id IS NULL OR maker_admin_id != checker_admin_id)`).
+    - `prevent_ledger_mutation()`: PostgreSQL append-only trigger blocking UPDATE and DELETE mutations on `ledger_transactions`.
+    - `verify_double_entry_balance()`: Cryptographic invariant verification function ensuring platform-wide balance equilibrium (`SUM(amount) = 0`).
+  - **Validation Schemas Added**:
+    - `packages/validation/src/index.ts`: `WalletHoldSchema`, `WalletReleaseSchema`, `WalletRewardSchema`, `WalletAdjustmentRequestSchema`, `WalletAdjustmentAdjudicateSchema`.
+  - **Backend Services**:
+    - `backend/src/wallet/walletLedger.service.js`:
+      - `executeLedgerTransfer`: Alphabetically sorts account IDs prior to `SELECT ... FOR UPDATE` to eliminate deadlocks; ensures strictly positive amount, distinct accounts, non-negative balance; executes atomic double-entry transfer (debit + credit) and appends to `ledger_transactions` and `audit_logs`.
+      - `holdFunds` & `releaseHold`: Moves balance between `available_balance` and `held_balance` without changing total balance. Respects F2P launch gate (0.00 VXC).
+      - `awardReward`: Escrow to player wallet reward transfer.
+      - `requestAdjustment` & `adjudicateAdjustment`: Maker-Checker enforcement (`403 SELF_APPROVAL_FORBIDDEN` if creator attempts self-approval).
+      - `getWalletBalance`: Double-entry verification (`Credits - Debits = Available + Held`).
+      - `verifyLedgerInvariants`: Platform-wide zero-discrepancy verification.
+  - **API Routes Mounted**:
+    - `walletRouter` mounted at `/api/v1/wallet`: `GET /balance`, `GET /transactions`, `POST /holds`, `POST /releases`, `POST /adjustments/request`, `POST /adjustments/:id/adjudicate`, `POST /verify-invariants`.
+  - **Flutter Mobile**:
+    - `apps/mobile/lib/screens/wallet_screen.dart`: Biometric authentication gate, dual balance display (Available & Held), F2P launch compliance banner, transaction ledger cards with status pills, and double-entry cryptographic verification certificate modal.
+    - Linked in `apps/mobile/lib/screens/home_shell.dart`.
+    - Verified with `dart-mcp-server` `analyze_files`: 0 errors, 0 warnings.
+  - **Admin Desktop Console**:
+    - `apps/admin/src/app/maker-checker/page.tsx`: Dual-authorization Maker-Checker console with pending requests queue, self-approval prevention badge, adjustment creation modal, and double-entry transaction history.
+    - Verified Next.js production build: 15/15 static pages compiled successfully.
+  - **Security Gate & Testing**:
+    - Invariant: Balanced double-entry conservation tested with randomized property-based tests.
+    - Maker-Checker invariant verified: Creator cannot self-approve balance adjustments.
+    - 483/483 monorepo unit and domain tests passing (+16 Phase 25 tests in `tests/unit/phase25-double-entry-ledger.test.js`).
+    - Playwright E2E security tests created (`tests/e2e/phase25-wallet-ledger.spec.js`).
+    - Pre-commit secret scan passing with 0 secrets detected.
+- **Phase 26: Redeem Codes**
+  - **Database Migration 019**: `infra/migrations/019_redeem_codes.sql`:
+    - `redeem_code_batches` table with Maker-Checker dual authorization DB constraint (`chk_batch_maker_checker CHECK (checker_admin_id IS NULL OR maker_admin_id != checker_admin_id)`), denomination, quantity, and status lifecycle (`PENDING_APPROVAL`, `ACTIVE`, `COMPLETED`, `CANCELLED`, `EXPIRED`).
+    - Enhanced `redeem_codes` with `batch_uuid`, `code_prefix`, and `checksum_char` for instant pre-flight typo rejection.
+    - `redeem_code_redemptions` table with `uq_code_user_redemption` invariant and double-entry `ledger_tx_id` reference.
+    - `redeem_attempts` forensic logging table tracking failed redemption attempts and IP addresses.
+    - `redeem_code_exports` audit log table recording encrypted exports, admin ID, and cryptographic watermark.
+  - **Backend Services**:
+    - `backend/src/redeem/redeem.service.js`:
+      - `computeChecksum` & `validateCodeChecksum`: Pure Luhn-mod32 polynomial checksum over 8-character entropy payload with zero database calls. Typo codes rejected before DB lookup.
+      - `generateSingleCode`: Cryptographically random code generator using unambiguous character set (`23456789ABCDEFGHJKLMNPQRSTUVWXYZ`, excluding 0/O/1/I), generating `VEX-XXXX-XXXX-C` format.
+      - `hashRedeemCode`: Keyed HMAC-SHA256 hashed storage using secret from environment/secret manager for constant-time lookups.
+      - `createBatch` & `adjudicateBatch`: Maker-Checker dual authorization. Creator strictly forbidden from self-approval (`SELF_APPROVAL_FORBIDDEN`). Independent second admin transitions batch and codes to `ACTIVE` (or `CANCELLED`).
+      - `redeemCode`: Atomic double-entry ledger execution (`executeLedgerTransfer`), crediting user wallet from `PLATFORM_REVENUE_WALLET_ID`. Single-use invariant enforced: second redemption returns `ALREADY_REDEEMED` (409) with zero balance change.
+      - `checkRateLimit`: Security lockout (429 `REDEEM_RATE_LIMITED`) upon 5 failed attempts in 15 minutes and automatic emission of `SUSPICIOUS_REDEEM_ATTEMPTS` anomaly risk signal to `risk_signals` table.
+      - `exportBatch`: Cryptographically watermarked batch export (`EXPORTED_BY_${adminId}_${Date.now()}`) recorded in audit log.
+      - `blockCode`: Administrative compromise blocking transitioning code to `BLOCKED`.
+  - **API Routes Mounted**:
+    - `redeemRouter` mounted at `/api/v1/redeem`: `POST /verify-checksum`, `POST /use`, `GET /history`, `POST /batches`, `GET /batches`, `GET /batches/:id`, `POST /batches/:id/adjudicate`, `POST /batches/:id/export`, `POST /codes/:id/block`.
+  - **Validation Schemas Added**:
+    - `packages/validation/src/index.ts`: `CreateRedeemBatchSchema`, `ApproveRedeemBatchSchema`, `RedeemCodeInputSchema`, `ExportRedeemBatchSchema`, `BlockRedeemCodeSchema`.
+  - **Flutter Mobile**:
+    - `apps/mobile/lib/screens/redeem_screen.dart`: Screenshot-protected screen (`FLAG_SECURE` compliance), client-side polynomial checksum validator with visual checkmark / typo indicator, voucher input with auto-formatting, double-entry ledger credit confirmation, and abuse shield lockout counter.
+    - Linked in `apps/mobile/lib/screens/wallet_screen.dart` via "Redeem Promotional Voucher / Code" action button.
+    - Verified with `dart-mcp-server` `analyze_files`: 0 errors, 0 warnings.
+  - **Admin Desktop & Web Consoles**:
+    - `apps/admin/src/app/batches/page.tsx`: Voucher batches management console with status chips, Maker-Checker dual authorization modal, batch creation wizard, watermarked encrypted export, code blocking modal, and interactive Luhn-mod32 checksum calculator.
+    - Integrated into `apps/admin/src/components/AdminShell.tsx` navigation.
+    - `apps/web/src/app/redeem/page.tsx`: Web player voucher redeem page with live client-side checksum validation, double-entry credit confirmation, and demo testing presets.
+  - **Security Gate & Testing**:
+    - Security Gate: Typo codes mathematically rejected before DB lookup.
+    - Security Gate: Second use returns `ALREADY_REDEEMED` with no balance modification.
+    - Security Gate: Maker-Checker constraint strictly blocks batch creator self-approval.
+    - Security Gate: 5 failed attempts trigger 429 lockout and anomaly alert.
+    - 508/508 monorepo unit and domain tests passing (+25 Phase 26 tests in `tests/unit/phase26-redeem-codes.test.js`).
+    - Playwright E2E security tests created (`tests/e2e/phase26-redeem-codes.spec.js`).
+    - Pre-commit secret scan passing with 0 secrets detected.

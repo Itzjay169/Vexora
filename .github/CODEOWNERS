@@ -1,0 +1,24 @@
+# Vexora Codeowners Configuration
+# Sensitive modules require mandatory multi-party review
+
+# Default global fallback
+* @Itz30jay
+
+# Financial & Wallet Engine (requires 2 reviewers including financial security lead)
+/backend/src/wallet/ @Itz30jay @Itz30jay/wallet-security-reviewers
+/backend/src/payouts/ @Itz30jay @Itz30jay/wallet-security-reviewers
+/backend/src/redeem/ @Itz30jay @Itz30jay/wallet-security-reviewers
+
+# Authentication, Identity & Token Verification
+/backend/src/auth/ @Itz30jay @Itz30jay/auth-security-reviewers
+
+# Admin Console & Administrative APIs
+/backend/src/admin/ @Itz30jay @Itz30jay/admin-security-reviewers
+/apps/admin/ @Itz30jay @Itz30jay/admin-security-reviewers
+
+# Cryptographic Audit Chain & Tamper Prevention
+/backend/src/audit/ @Itz30jay @Itz30jay/audit-security-reviewers
+
+# Infrastructure, Terraform & Production Migrations
+/infra/terraform/ @Itz30jay @Itz30jay/infra-reviewers
+/infra/migrations/ @Itz30jay @Itz30jay/database-reviewers

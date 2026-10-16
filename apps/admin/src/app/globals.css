@@ -1,0 +1,43 @@
+:root {
+  /* Brand Colors */
+  --vx-brand-primary: #6366F1;
+  --vx-brand-primary-hover: #4F46E5;
+  --vx-brand-secondary: #A855F7;
+  --vx-brand-accent: #06B6D4;
+
+  /* Admin Zero-Trust Dark Mode */
+  --vx-bg: #070B14;
+  --vx-surface: #0B1120;
+  --vx-surface-elevated: #111A2E;
+  --vx-surface-highlight: #1B253B;
+  --vx-border: #24304A;
+  --vx-border-subtle: #162035;
+  --vx-text-primary: #F8FAFC;
+  --vx-text-secondary: #94A3B8;
+  --vx-text-muted: #64748B;
+
+  /* Maker-Checker & Admin Security Tokens */
+  --vx-status-pending: #F59E0B;
+  --vx-status-approved: #10B981;
+  --vx-status-rejected: #EF4444;
+  --vx-status-locked: #6366F1;
+
+  /* Spacing & Radius */
+  --vx-radius-sm: 4px;
+  --vx-radius-md: 8px;
+  --vx-radius-lg: 12px;
+  --vx-radius-full: 9999px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--vx-bg);
+  color: var(--vx-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+}

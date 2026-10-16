@@ -1,0 +1,23 @@
+
+28. MVP Scope vs Later Features
+MVP Later
+Login + profile Advanced social login
+Game selection Large game catalogue
+Teams Advanced team contracts/management
+Tournament create/join Advanced Swiss/custom formats
+Basic bracket Dynamic tournament formats
+Result submission Automated game API result ingestion where officially supported
+Leaderboard Advanced ranking/normalisation
+Organiser verification Automated verification workflows
+Basic wallet ledger Expanded payment/settlement options after compliance review
+Redeem codes Promotional campaigns and advanced code rules
+Reports/disputes Advanced risk scoring
+Push notifications Personalised recommendation engine
+Vexora recommendation. Launch the first public version with FREE tournaments only (no entry fee, no cash prize),
+proving the competition engine, trust layer and organiser quality. Enable credits and rewards in a later, legally reviewed
+release.
+
+-- 18 of 42 --
+
+VEXORA | Complete Project Blueprint Esports Tournament Platform
+Page 19

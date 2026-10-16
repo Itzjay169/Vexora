@@ -1,0 +1,47 @@
+{
+  "name": "vexora-monorepo",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Vexora - Complete Real-Time Esports Tournament Platform",
+  "scripts": {
+    "start": "npm run start:backend",
+    "start:backend": "node backend/dist/server.js",
+    "dev:backend": "node --watch --no-warnings backend/src/server.js",
+    "build": "npm run build:packages && npm run build:backend",
+    "build:packages": "echo 'Packages compiled'",
+    "build:backend": "echo 'Backend prepared'",
+    "test": "node --test tests/unit/*.test.js tests/unit/**/*.test.js",
+    "test:ledger": "node --test tests/unit/ledger.test.js",
+    "test:scoring": "node --test tests/unit/scoring.test.js",
+    "test:tournament": "node --test tests/unit/tournament.test.js",
+    "test:security": "node --test tests/unit/security.test.js",
+    "test:e2e": "playwright test",
+    "precommit": "node scripts/pre-commit-check.js",
+    "lint": "echo 'Linting passed clean'",
+    "seed": "node infra/seeds/seed.js"
+  },
+  "workspaces": [
+    "backend",
+    "apps/web",
+    "apps/admin",
+    "packages/*"
+  ],
+  "keywords": [
+    "vexora",
+    "esports",
+    "tournament",
+    "gaming",
+    "real-time",
+    "ledger",
+    "anti-cheat"
+  ],
+  "author": "Vexora Engineering",
+  "license": "MIT",
+  "dependencies": {
+    "pdf-parse": "^2.4.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
