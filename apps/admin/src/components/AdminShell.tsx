@@ -74,6 +74,12 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['SUPER_ADMIN', 'ADMIN', 'FINANCE', 'AUDITOR'],
   },
   {
+    name: 'Achievements',
+    href: '/achievements',
+    icon: '🏅',
+    roles: ['SUPER_ADMIN', 'ADMIN'],
+  },
+  {
     name: 'Game Management',
     href: '/games',
     icon: '🎮',

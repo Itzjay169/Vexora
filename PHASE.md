@@ -260,13 +260,13 @@ Goal: Insight for players, organisers, admins. PDF refs: Sections 22, 39 (Phase 
 
 Player, organiser, admin analytics per Section 22; materialised views/reporting tables refreshed by workers (no heavy analytics on primary tables during live events); EXPLAIN every dashboard query; read-replica readiness.
 Firebase Analytics event plan (no personal data in names); consent honoured; CSV/PDF exports under role control, masked and logged. MCP: Stitch, Postgres, Dart MCP, Playwright, Firebase, Context7. Security gate: Exports masked; retention applied to event data. Exit: Every metric has a documented definition and a test against known data.
-PHASE 32: Achievements, Gamification & Retention [NEXT]
+PHASE 32: Achievements, Gamification & Retention [COMPLETED]
 
 Goal: Fair-play-focused engagement. PDF refs: Sections 41, 42. Build:
 
 achievements/user_achievements; badge engine awarding only from verified, finalised results; seasons snapshots; streaks/missions (participation and fair play, not spend); titles and profile frames (cosmetic); friends/region/team boards.
 Responsible-design rules: no dark patterns, clear age restrictions, self-exclusion/limit tools. MCP: Stitch, Dart MCP, Postgres, Playwright. Security gate: Badges cannot be granted by client calls. Exit: Badges show source tournament and date; no pay-to-win items.
-PHASE 33: Support Desk
+PHASE 33: Support Desk [NEXT]
 
 Goal: Ticketing instead of ad-hoc chat. PDF refs: Sections 23, 39 (Phase 8). Build:
 

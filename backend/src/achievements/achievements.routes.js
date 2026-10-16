@@ -1,91 +1,104 @@
+/**
+ * Vexora Esports Tournament Platform — Achievements Routes
+ *
+ * Phase 32: Achievements, Gamification & Retention
+ *
+ * Security Gate: No client-facing endpoint can directly award badges.
+ * The POST /admin/award endpoint requires ACHIEVEMENTS_MANAGE permission.
+ */
+
 import { Router } from 'express';
 import { authenticate } from '../common/auth.middleware.js';
-import { query } from '../common/database.js';
+import { requirePermission } from '../common/rbac.middleware.js';
+import { AchievementsService } from './achievements.service.js';
 
 export const achievementsRouter = Router();
-
-// All achievement endpoints require auth
 achievementsRouter.use(authenticate);
 
-// ─── GET / — List all available achievements ─────────────────────────────
-achievementsRouter.get('/', async (req, res, next) => {
+// ─── GET /catalogue — All achievements ──────────────────────────────────
+achievementsRouter.get('/catalogue', async (req, res, next) => {
   try {
-    const category = req.query.category;
-    let whereClause = '';
-    const params = [];
-
-    if (category) {
-      params.push(category.toUpperCase());
-      whereClause = `WHERE a.category = $1`;
-    }
-
-    const result = await query(
-      `SELECT a.id, a.slug, a.title, a.description, a.category, a.icon_url,
-              a.xp_reward, a.coin_reward, a.tier,
-              ua.unlocked_at, ua.progress
-       FROM achievements a
-       LEFT JOIN user_achievements ua ON ua.achievement_id = a.id AND ua.user_id = $${params.length + 1}
-       ${whereClause}
-       ORDER BY a.tier ASC, a.title ASC`,
-      [...params, req.user.id]
-    );
-
-    res.json({ success: true, data: result.rows });
-  } catch (err) {
-    next(err);
-  }
+    const { category } = req.query;
+    const achievements = await AchievementsService.getAchievementCatalogue(category || null);
+    res.json({ success: true, data: achievements });
+  } catch (err) { next(err); }
 });
 
-// ─── GET /me — User's unlocked achievements ──────────────────────────────
+// ─── GET /me — My earned achievements ───────────────────────────────────
 achievementsRouter.get('/me', async (req, res, next) => {
   try {
-    const result = await query(
-      `SELECT a.id, a.slug, a.title, a.description, a.category, a.icon_url,
-              a.xp_reward, a.coin_reward, a.tier,
-              ua.unlocked_at, ua.progress
-       FROM user_achievements ua
-       JOIN achievements a ON a.id = ua.achievement_id
-       WHERE ua.user_id = $1
-       ORDER BY ua.unlocked_at DESC`,
-      [req.user.id]
-    );
-
-    res.json({ success: true, data: result.rows });
-  } catch (err) {
-    next(err);
-  }
+    const achievements = await AchievementsService.getUserAchievements(req.user.id);
+    res.json({ success: true, data: achievements });
+  } catch (err) { next(err); }
 });
 
-// ─── GET /summary — User's achievement stats ─────────────────────────────
-achievementsRouter.get('/summary', async (req, res, next) => {
+// ─── GET /user/:id — Public achievements for a user ────────────────────
+achievementsRouter.get('/user/:id', async (req, res, next) => {
   try {
-    const [total, unlocked, xp] = await Promise.all([
-      query(`SELECT COUNT(*)::int AS count FROM achievements`),
-      query(
-        `SELECT COUNT(*)::int AS count FROM user_achievements WHERE user_id = $1 AND unlocked_at IS NOT NULL`,
-        [req.user.id]
-      ),
-      query(
-        `SELECT COALESCE(SUM(a.xp_reward), 0)::int AS total_xp
-         FROM user_achievements ua
-         JOIN achievements a ON a.id = ua.achievement_id
-         WHERE ua.user_id = $1 AND ua.unlocked_at IS NOT NULL`,
-        [req.user.id]
-      ),
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        totalAchievements: total.rows[0].count,
-        unlockedCount: unlocked.rows[0].count,
-        totalXpEarned: xp.rows[0].total_xp,
-        completionPercentage: total.rows[0].count > 0
-          ? Math.round((unlocked.rows[0].count / total.rows[0].count) * 100)
-          : 0,
-      },
-    });
-  } catch (err) {
-    next(err);
-  }
+    const achievements = await AchievementsService.getUserAchievements(req.params.id);
+    const displayed = achievements.filter(a => a.is_displayed);
+    res.json({ success: true, data: displayed });
+  } catch (err) { next(err); }
 });
+
+// ─── GET /missions — Active missions ────────────────────────────────────
+achievementsRouter.get('/missions', async (req, res, next) => {
+  try {
+    const { type } = req.query;
+    const missions = await AchievementsService.getActiveMissions(type || null);
+    res.json({ success: true, data: missions });
+  } catch (err) { next(err); }
+});
+
+// ─── GET /missions/me — My mission progress ─────────────────────────────
+achievementsRouter.get('/missions/me', async (req, res, next) => {
+  try {
+    const progress = await AchievementsService.getUserMissionProgress(req.user.id);
+    res.json({ success: true, data: progress });
+  } catch (err) { next(err); }
+});
+
+// ─── GET /streaks/me — My streaks ───────────────────────────────────────
+achievementsRouter.get('/streaks/me', async (req, res, next) => {
+  try {
+    const streaks = await AchievementsService.getUserStreaks(req.user.id);
+    res.json({ success: true, data: streaks });
+  } catch (err) { next(err); }
+});
+
+// ─── GET /seasons/me — My season snapshots ──────────────────────────────
+achievementsRouter.get('/seasons/me', async (req, res, next) => {
+  try {
+    const snapshots = await AchievementsService.getSeasonSnapshots(req.user.id);
+    res.json({ success: true, data: snapshots });
+  } catch (err) { next(err); }
+});
+
+// ─── GET /self-exclusion — Responsible gaming settings ───────────────────
+achievementsRouter.get('/self-exclusion', async (req, res, next) => {
+  try {
+    const settings = await AchievementsService.getSelfExclusionSettings(req.user.id);
+    res.json({ success: true, data: settings || { message: 'No limits set' } });
+  } catch (err) { next(err); }
+});
+
+// ─── PUT /self-exclusion — Update self-exclusion limits ─────────────────
+achievementsRouter.put('/self-exclusion', async (req, res, next) => {
+  try {
+    const result = await AchievementsService.updateSelfExclusionSettings(req.user.id, req.body);
+    res.json({ success: true, data: result });
+  } catch (err) { next(err); }
+});
+
+// ─── POST /admin/evaluate — Force-evaluate achievements (admin) ─────────
+achievementsRouter.post('/admin/evaluate',
+  requirePermission('ACHIEVEMENTS_MANAGE'),
+  async (req, res, next) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'userId required' } });
+      const awarded = await AchievementsService.evaluateAndAward(userId, {});
+      res.json({ success: true, data: { awarded: awarded.length, badges: awarded } });
+    } catch (err) { next(err); }
+  }
+);

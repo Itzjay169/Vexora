@@ -1297,6 +1297,44 @@ export const ViewRefreshRequestSchema = z.object({
 });
 export type ViewRefreshRequestInput = z.infer<typeof ViewRefreshRequestSchema>;
 
+// ─── Phase 32: Achievements, Gamification & Retention Schemas ───────────────
 
+export const AchievementRarity = z.enum(['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY']);
+export type AchievementRarity = z.infer<typeof AchievementRarity>;
+
+export const AchievementCategory = z.enum([
+  'PARTICIPATION', 'FAIR_PLAY', 'SKILL', 'COMMUNITY', 'MILESTONE', 'SEASONAL',
+]);
+export type AchievementCategory = z.infer<typeof AchievementCategory>;
+
+export const MissionType = z.enum(['DAILY', 'WEEKLY', 'SEASONAL', 'PERMANENT']);
+export type MissionType = z.infer<typeof MissionType>;
+
+export const CosmeticType = z.enum(['TITLE', 'PROFILE_FRAME', 'BADGE_BORDER', 'NAME_COLOR']);
+export type CosmeticType = z.infer<typeof CosmeticType>;
+
+/** Self-exclusion settings update schema */
+export const SelfExclusionSettingsSchema = z.object({
+  dailyPlayLimitMinutes: z.number().int().min(15).max(1440).nullable().optional(),
+  weeklyPlayLimitMinutes: z.number().int().min(60).max(10080).nullable().optional(),
+  cooldownMinutes: z.number().int().min(5).max(1440).nullable().optional(),
+  selfExcludedUntil: z.string().datetime().nullable().optional(),
+  ageVerified: z.boolean().optional(),
+});
+export type SelfExclusionSettingsInput = z.infer<typeof SelfExclusionSettingsSchema>;
+
+/** Achievement create schema (admin) */
+export const AchievementCreateSchema = z.object({
+  slug: z.string().min(3).max(100).regex(/^[a-z0-9_]+$/, 'Must be lowercase with underscores'),
+  title: z.string().min(3).max(200),
+  description: z.string().min(10).max(1000),
+  category: AchievementCategory.default('PARTICIPATION'),
+  rarity: AchievementRarity.default('COMMON'),
+  xpReward: z.number().int().min(0).max(10000).default(0),
+  criteriaType: z.string().min(3).max(100),
+  criteriaValue: z.number().int().min(1).default(1),
+  isPayToWin: z.literal(false).default(false),
+});
+export type AchievementCreateInput = z.infer<typeof AchievementCreateSchema>;
 
 
