@@ -1,10 +1,10 @@
 # Vexora Esports Tournament Platform - Engineering Guide
 
 ## Current Status & Phase Tracking
-- **Current Phase**: **Phase 30: Push Notifications, Inbox & Announcements**
-- **Status**: **Phase 29 Completed — Ready for Phase 30 (Push Notifications, Inbox & Announcements)**
+- **Current Phase**: **Phase 31: Analytics & Dashboards**
+- **Status**: **Phase 30 Completed — Ready for Phase 31 (Analytics & Dashboards)**
 - **Decision Recorded**: **v1 Public Launch = 100% FREE Tournaments Only**
-- **Next Phase**: **Phase 30: Push Notifications, Inbox & Announcements**
+- **Next Phase**: **Phase 31: Analytics & Dashboards**
 
 ---
 

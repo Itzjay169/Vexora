@@ -1157,6 +1157,109 @@ export const RealtimeBroadcastSchema = z.object({
 });
 export type RealtimeBroadcastInput = z.infer<typeof RealtimeBroadcastSchema>;
 
+// ─── Phase 30: Push Notifications, Inbox & Announcements Schemas ────────────
+
+export const NotificationCategory = z.enum([
+  'SECURITY', 'TOURNAMENT', 'MATCH', 'DISPUTE',
+  'WALLET', 'ANNOUNCEMENT', 'SOCIAL', 'SYSTEM',
+]);
+export type NotificationCategory = z.infer<typeof NotificationCategory>;
+
+export const DeliveryStatus = z.enum([
+  'PENDING', 'DISPATCHED', 'DELIVERED', 'FAILED', 'DEAD_LETTER',
+]);
+export type DeliveryStatus = z.infer<typeof DeliveryStatus>;
+
+export const AnnouncementChannel = z.enum(['PUBLIC', 'TOURNAMENT', 'ORGANISER']);
+export type AnnouncementChannel = z.infer<typeof AnnouncementChannel>;
+
+export const AnnouncementModerationStatus = z.enum(['PENDING', 'APPROVED', 'FLAGGED', 'REJECTED']);
+export type AnnouncementModerationStatus = z.infer<typeof AnnouncementModerationStatus>;
+
+export const BannerSeverity = z.enum(['INFO', 'WARNING', 'CRITICAL', 'MAINTENANCE']);
+export type BannerSeverity = z.infer<typeof BannerSeverity>;
+
+/** User notification preferences update schema */
+export const NotificationPreferencesUpdateSchema = z.object({
+  push_enabled: z.boolean().optional(),
+  email_enabled: z.boolean().optional(),
+  in_app_enabled: z.boolean().optional(),
+  quiet_hours_start: z.string().regex(/^\d{2}:\d{2}$/, 'Must be HH:MM format').nullable().optional(),
+  quiet_hours_end: z.string().regex(/^\d{2}:\d{2}$/, 'Must be HH:MM format').nullable().optional(),
+  quiet_hours_tz: z.string().max(50).optional(),
+}).refine(
+  (data) => {
+    // If quiet hours start is set, end must also be set (and vice versa)
+    if ((data.quiet_hours_start && !data.quiet_hours_end) ||
+        (!data.quiet_hours_start && data.quiet_hours_end)) {
+      return false;
+    }
+    return true;
+  },
+  { message: 'Both quiet_hours_start and quiet_hours_end must be set together', path: ['quiet_hours_end'] }
+);
+export type NotificationPreferencesUpdateInput = z.infer<typeof NotificationPreferencesUpdateSchema>;
+
+/** Admin send notification schema */
+export const AdminSendNotificationSchema = z.object({
+  userId: z.string().uuid('Invalid user ID'),
+  category: NotificationCategory.default('SYSTEM'),
+  title: z.string().min(1, 'Title is required').max(500),
+  body: z.string().min(1, 'Body is required').max(5000),
+  deepLink: z.string().max(1000).optional(),
+  deepLinkWeb: z.string().max(1000).optional(),
+  metadata: z.record(z.any()).default({}),
+});
+export type AdminSendNotificationInput = z.infer<typeof AdminSendNotificationSchema>;
+
+/** Create announcement schema */
+export const CreateAnnouncementSchema = z.object({
+  channel: AnnouncementChannel.default('PUBLIC'),
+  targetTournamentId: z.string().uuid().nullable().optional(),
+  title: z.string().min(3, 'Title must be at least 3 characters').max(500),
+  body: z.string().min(10, 'Body must be at least 10 characters').max(10000),
+  richContent: z.record(z.any()).default({}),
+  isPinned: z.boolean().default(false),
+  expiresAt: z.string().datetime().nullable().optional(),
+}).refine(
+  (data) => {
+    if (data.channel === 'TOURNAMENT' && !data.targetTournamentId) {
+      return false;
+    }
+    return true;
+  },
+  { message: 'Tournament channel announcements require a targetTournamentId', path: ['targetTournamentId'] }
+);
+export type CreateAnnouncementInput = z.infer<typeof CreateAnnouncementSchema>;
+
+/** Moderate announcement schema */
+export const ModerateAnnouncementSchema = z.object({
+  action: z.enum(['APPROVE', 'REJECT', 'FLAG']),
+  reason: z.string().max(1000).optional(),
+  notes: z.string().max(1000).optional(),
+}).refine(
+  (data) => {
+    if (data.action === 'REJECT' && (!data.reason || data.reason.length < 5)) {
+      return false;
+    }
+    return true;
+  },
+  { message: 'Rejection reason must be at least 5 characters', path: ['reason'] }
+);
+export type ModerateAnnouncementInput = z.infer<typeof ModerateAnnouncementSchema>;
+
+/** System banner create/update schema */
+export const SystemBannerSchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters').max(300),
+  message: z.string().min(5, 'Message must be at least 5 characters').max(2000),
+  severity: BannerSeverity.default('INFO'),
+  isDismissible: z.boolean().default(true),
+  startsAt: z.string().datetime().optional(),
+  endsAt: z.string().datetime().nullable().optional(),
+  targetPlatforms: z.array(z.enum(['WEB', 'MOBILE', 'ADMIN'])).default(['WEB', 'MOBILE', 'ADMIN']),
+});
+export type SystemBannerInput = z.infer<typeof SystemBannerSchema>;
+
 
 
 

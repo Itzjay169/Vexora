@@ -246,7 +246,7 @@ Goal: Live events, safely. PDF refs: Sections 14, 39 (Phase 7). Build:
 Socket.IO gateway: short-lived token auth, server-side per-channel authorisation, per-connection rate limits, payload limits, Redis pub/sub for horizontal scale.
 Event catalogue from Section 14 with sequence numbers, heartbeat, auto-reconnect, missed-event replay; outbox table so events publish only after DB commit.
 Live tournament board and live leaderboard (mobile + web); degraded read-only mode. MCP: Context7 (Socket.IO adapter, Redis), Dart MCP (reconnect logic, flaky-network tests), Playwright (two users see same update; unauthorised join denied), Postgres (outbox). Security gate: User cannot subscribe to another user's wallet or a private channel. Exit: Result finalisation updates leaderboard on two devices in seconds; replay verified.
-PHASE 30: Push Notifications, Inbox & Announcements [NEXT]
+PHASE 30: Push Notifications, Inbox & Announcements [COMPLETED]
 
 Goal: Reliable multi-channel communication. PDF refs: Sections 20, 39 (Phase 7). Build:
 
@@ -254,7 +254,7 @@ FCM topics + device targeting; preferences per category, quiet hours, mandatory 
 In-app inbox; deep links to match/tournament/dispute; email for security events.
 Organiser announcement channel with moderation; maintenance banner. MCP: Firebase, Developer Knowledge (notification permissions/channels), Dart MCP, Context7, Playwright. Security gate: No balances, KYC, or room codes in push payloads; send IDs and fetch securely. Exit: Notification received on Android and iOS test devices; preferences honoured.
 PART I: ANALYTICS, RETENTION & SUPPORT (Phases 31-33)
-PHASE 31: Analytics & Dashboards
+PHASE 31: Analytics & Dashboards [NEXT]
 
 Goal: Insight for players, organisers, admins. PDF refs: Sections 22, 39 (Phase 8). Build:
 
