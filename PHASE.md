@@ -224,14 +224,14 @@ Admin batches (denomination, quantity, expiry, max uses); cryptographically rand
 Encrypted, watermarked batch export, audit-logged; maker-checker for batches.
 Rate-limit, lock-out and anomaly alerts; second use returns "already used" with no balance change.
 Screenshot-protected redeem screen on mobile. MCP: Playwright (redeem twice), Postgres, Dart MCP, Context7, Firebase (App Check on wallet endpoints). Security gate: Brute-force tests pass; typo codes rejected before DB lookup. Exit: Code lifecycle fully tested; alerts fire on abuse.
-PHASE 27: Payments, Prize Escrow & Paid Tournament Flow [NEXT]
+PHASE 27: Payments, Prize Escrow & Paid Tournament Flow [COMPLETED]
 
 Goal: Money in, holds and prizes. PDF refs: Sections 9, 26, 39 (Phase 6). Build:
 
 Payment-provider integration; signed webhooks with timestamp + event-ID de-duplication (webhook_events table); client never confirms payment; idempotency keys.
 Tournament entry via holds; organiser-funded prize escrow locked before registration opens; refunds on cancellation; settlement job; published refund rules.
 Feature flags and regional kill-switches (Remote Config + admin). MCP: Context7 (payment SDK, webhook signatures), Postgres, Playwright (hold -> cancel -> release), Firebase (Remote Config), Developer Knowledge (Play Integrity/App Attest). Security gate: Webhook signature/replay/duplicate tests pass; test keys only outside production. Exit: Staging cycle: redeem -> join -> hold -> cancel -> release works.
-PHASE 28: Payouts, Reconciliation & Financial Reports
+PHASE 28: Payouts, Reconciliation & Financial Reports [NEXT]
 
 Goal: Controlled cash-out and audit-ready finance. PDF refs: Sections 8, 9, 47 (Wallet and payout security). Build:
 

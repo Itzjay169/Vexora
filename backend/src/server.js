@@ -32,6 +32,7 @@ import { webhooksRouter } from './webhooks/webhooks.routes.js';
 import { seasonsRouter } from './seasons/seasons.routes.js';
 import { searchRouter } from './search/search.routes.js';
 import { ratingsRouter } from './ratings/ratings.routes.js';
+import { paymentsRouter } from './payments/payments.routes.js';
 import { setupWebSocketServer } from './common/websocket.js';
 import { healthRouter } from './common/health.js';
 
@@ -104,6 +105,7 @@ app.use('/api/v1/webhooks',       webhooksRouter);
 app.use('/api/v1/seasons',        seasonsRouter);
 app.use('/api/v1/search',         searchRouter);
 app.use('/api/v1/ratings',        ratingsRouter);
+app.use('/api/v1/payments',       paymentsRouter);
 
 // ─── OpenAPI Spec Endpoint ──────────────────────────────────────────────
 app.get('/api/v1/docs/openapi.json', (_req, res) => {

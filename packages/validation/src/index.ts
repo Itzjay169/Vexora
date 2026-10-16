@@ -1006,5 +1006,63 @@ export const BlockRedeemCodeSchema = z.object({
 });
 export type BlockRedeemCodeInput = z.infer<typeof BlockRedeemCodeSchema>;
 
+// ─── Phase 27: Payments, Prize Escrow & Paid Tournament Flow Schemas ─────────
+
+export const PaymentProviderEnum = z.enum(['RAZORPAY', 'CASHFREE']);
+export type PaymentProvider = z.infer<typeof PaymentProviderEnum>;
+
+export const PaymentPurposeEnum = z.enum(['DEPOSIT', 'TOURNAMENT_ENTRY', 'PRIZE_ESCROW']);
+export type PaymentPurpose = z.infer<typeof PaymentPurposeEnum>;
+
+export const CreatePaymentOrderSchema = z.object({
+  provider: PaymentProviderEnum.default('RAZORPAY'),
+  amount: z.number().positive('Payment amount must be greater than 0'),
+  purpose: PaymentPurposeEnum.default('DEPOSIT'),
+  referenceType: z.string().max(50).optional(),
+  referenceId: z.string().uuid().optional(),
+});
+export type CreatePaymentOrderInput = z.infer<typeof CreatePaymentOrderSchema>;
+
+export const ProcessRefundSchema = z.object({
+  amount: z.number().positive('Refund amount must be positive').optional(),
+  reason: z.string().min(5, 'Refund reason must be at least 5 characters').max(500),
+});
+export type ProcessRefundInput = z.infer<typeof ProcessRefundSchema>;
+
+export const LockPrizeEscrowSchema = z.object({
+  tournamentId: z.string().uuid(),
+  escrowAmount: z.number().positive('Escrow amount must be positive'),
+});
+export type LockPrizeEscrowInput = z.infer<typeof LockPrizeEscrowSchema>;
+
+export const SettlePrizeEscrowSchema = z.object({
+  notes: z.string().max(500).optional(),
+});
+export type SettlePrizeEscrowInput = z.infer<typeof SettlePrizeEscrowSchema>;
+
+export const ProcessEntryPaymentSchema = z.object({
+  tournamentId: z.string().uuid(),
+  registrationId: z.string().uuid(),
+  entryFee: z.number().positive('Entry fee must be positive'),
+});
+export type ProcessEntryPaymentInput = z.infer<typeof ProcessEntryPaymentSchema>;
+
+export const RefundEntryFeeSchema = z.object({
+  reason: z.string().min(5, 'Reason must be at least 5 characters').max(500),
+});
+export type RefundEntryFeeInput = z.infer<typeof RefundEntryFeeSchema>;
+
+export const RegionalConfigUpdateSchema = z.object({
+  regionCode: z.string().min(2).max(20),
+  countryCode: z.string().min(2).max(10).default('IN'),
+  killSwitchOn: z.boolean().optional(),
+  killSwitchReason: z.string().max(500).optional(),
+  maxEntryFee: z.number().min(0).optional(),
+  maxPrizePool: z.number().min(0).optional(),
+  allowedProviders: z.array(PaymentProviderEnum).optional(),
+});
+export type RegionalConfigUpdateInput = z.infer<typeof RegionalConfigUpdateSchema>;
+
+
 
 

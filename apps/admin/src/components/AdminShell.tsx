@@ -44,6 +44,12 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['SUPER_ADMIN', 'FINANCE', 'AUDITOR'],
   },
   {
+    name: 'Payments & Escrow',
+    href: '/payments',
+    icon: '💳',
+    roles: ['SUPER_ADMIN', 'FINANCE', 'AUDITOR'],
+  },
+  {
     name: 'Game Management',
     href: '/games',
     icon: '🎮',

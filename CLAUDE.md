@@ -1,10 +1,10 @@
 # Vexora Esports Tournament Platform - Engineering Guide
 
 ## Current Status & Phase Tracking
-- **Current Phase**: **Phase 27: Payments, Prize Escrow & Paid Tournament Flow**
-- **Status**: **Phase 26 Completed — Ready for Phase 27 (Payments, Prize Escrow & Webhooks)**
+- **Current Phase**: **Phase 28: Payouts, Reconciliation & Financial Reports**
+- **Status**: **Phase 27 Completed — Ready for Phase 28 (Payouts, Reconciliation & Financial Reports)**
 - **Decision Recorded**: **v1 Public Launch = 100% FREE Tournaments Only**
-- **Next Phase**: **Phase 27: Payments, Prize Escrow & Paid Tournament Flow**
+- **Next Phase**: **Phase 28: Payouts, Reconciliation & Financial Reports**
 
 ---
 
@@ -698,4 +698,42 @@ vexora/
     - Security Gate: 5 failed attempts trigger 429 lockout and anomaly alert.
     - 508/508 monorepo unit and domain tests passing (+25 Phase 26 tests in `tests/unit/phase26-redeem-codes.test.js`).
     - Playwright E2E security tests created (`tests/e2e/phase26-redeem-codes.spec.js`).
+    - Pre-commit secret scan passing with 0 secrets detected.
+- **Phase 27: Payments, Prize Escrow & Paid Tournament Flow**
+  - **Database Migration 020**: `infra/migrations/020_payments_escrow_and_webhooks.sql`:
+    - `webhook_events`: Signed webhook deduplication with `(provider, event_id)` unique constraint and `prevent_webhook_event_mutation()` immutability trigger blocking updates to processed records.
+    - `payment_orders`: Gateway order tracking (Razorpay / Cashfree) with status lifecycle (`CREATED`, `PENDING`, `AUTHORIZED`, `CAPTURED`, `FAILED`, `REFUNDED`, `PARTIALLY_REFUNDED`, `EXPIRED`) and idempotency key uniqueness.
+    - `prize_escrow_locks`: Organiser-funded prize pool escrow locks holding funds before registration opens with check constraint ensuring positive amounts and double-entry ledger references.
+    - `tournament_entry_payments`: Links player tournament registrations to payment holds and ledger transaction records.
+    - `regional_payment_config`: Emergency kill-switches and maximum fee limits per region/country (e.g. IN-ALL, IN-TN, IN-KA).
+  - **Backend Services**:
+    - `backend/src/payments/payment.service.js`:
+      - Signed webhook processing with HMAC-SHA256 signature verification and timing-safe constant-time comparison (`crypto.timingSafeEqual`).
+      - Timestamp replay attack defense rejecting stale webhooks older than 5 minutes (`WEBHOOK_REPLAY_TOLERANCE_MS`).
+      - Inbound event deduplication via `webhook_events` table; duplicate deliveries are safely acknowledged with `duplicate: true` and zero state modification.
+      - Client never confirms payments; only signed webhook events transition orders to `CAPTURED`.
+      - Feature flag gating (`real_money_wallet_enabled`) and regional kill-switch evaluation.
+      - Atomic payment order creation with idempotency replay protection.
+    - `backend/src/payments/prizeEscrow.service.js`:
+      - `lockPrizeEscrow`: Debits organiser wallet and credits platform escrow before registration opens.
+      - `processEntryPayment`: Creates player entry fee hold in wallet ledger.
+      - `refundEntryFee` & `refundAllEntries`: Automatic hold releases on player withdrawal or tournament cancellation.
+      - `settleTournamentEscrow`: Settles winner prizes from escrow into player wallets.
+      - `getPublishedRefundPolicy`: Published legal refund rules (cancellation windows, 100% refund on organiser cancellation or server crash).
+  - **API Routes Mounted**:
+    - `paymentsRouter` mounted at `/api/v1/payments`: `POST /orders`, `GET /orders`, `GET /orders/:id`, `POST /refund/:orderId`, `GET /refund-policy`, `POST /escrow/lock`, `GET /escrow/:tournamentId`, `POST /escrow/:tournamentId/settle`, `POST /entry`, `POST /entry/:registrationId/refund`, `GET /entry/:tournamentId`, `GET /admin/webhooks`, `GET /admin/regional-config`, `PATCH /admin/regional-config`.
+    - `webhooksRouter` mounted at `/api/v1/webhooks`: Enhanced `/razorpay` and `/cashfree` endpoints with HMAC-SHA256 signature verification, replay protection, and deduplication.
+  - **Validation Schemas Added**:
+    - `packages/validation/src/index.ts`: `CreatePaymentOrderSchema`, `ProcessRefundSchema`, `LockPrizeEscrowSchema`, `SettlePrizeEscrowSchema`, `ProcessEntryPaymentSchema`, `RefundEntryFeeSchema`, `RegionalConfigUpdateSchema`.
+  - **Flutter Mobile**:
+    - `apps/mobile/lib/screens/payment_escrow_screen.dart`: Visual prize escrow transparency card with "PRE-FUNDED" verified badge, tournament entry fee hold authorization, payment provider selection (Razorpay UPI / Cashfree), signed webhook status verification, and published refund rules modal.
+  - **Admin Desktop & Web Consoles**:
+    - `apps/admin/src/app/payments/page.tsx`: Payments & Escrow management console featuring Payment Orders table with refund action, Prize Escrow Locks monitor, Webhook Event Log with security status pills, and Emergency Regional Kill-Switch toggles. Integrated into `AdminShell.tsx` navigation.
+    - `apps/web/src/app/payments/page.tsx`: Web portal payment checkout and entry fee hold page with Prize Escrow Verified banner, payment aggregator selection, signed webhook simulation, and published refund policy modal.
+  - **Security Gate & Testing**:
+    - Security Gate: Webhook signature verification passes with HMAC-SHA256 constant-time comparison; tampered payloads rejected.
+    - Security Gate: Timestamp replay attack defense verified (rejects webhooks older than 5 minutes or in future).
+    - Security Gate: Event-ID deduplication verified via `(provider, event_id)` constraint.
+    - Security Gate: Client direct confirmation rejected; only signed webhooks confirm payment.
+    - 529/529 monorepo unit and domain tests passing (+21 Phase 27 tests in `tests/unit/phase27-payments-escrow-webhooks.test.js`).
     - Pre-commit secret scan passing with 0 secrets detected.
