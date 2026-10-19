@@ -151,6 +151,25 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAdminAuth();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [theme, setTheme] = React.useState<'dark' | 'light'>('dark');
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('vx-admin-theme');
+    if (saved === 'light' || saved === 'dark') {
+      setTheme(saved);
+      document.documentElement.setAttribute('data-theme', saved);
+    } else if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      setTheme('light');
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('vx-admin-theme', next);
+    document.documentElement.setAttribute('data-theme', next);
+  };
 
   // If user is not authenticated or not loaded yet, default to SUPER_ADMIN for preview or render
   const currentRole: AdminRole = user?.role || 'SUPER_ADMIN';
@@ -161,7 +180,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0B0F19' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--vx-bg)' }}>
       {/* Mobile Drawer Backdrop */}
       {sidebarOpen && (
         <div
@@ -182,8 +201,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}
         style={{
           width: '280px',
-          backgroundColor: '#0F172A',
-          borderRight: '1px solid #1E293B',
+          backgroundColor: 'var(--vx-surface, #0F172A)',
+          borderRight: '1px solid var(--vx-border, #1E293B)',
           padding: '1.5rem',
           display: 'flex',
           flexDirection: 'column',
@@ -306,9 +325,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            borderBottom: '1px solid #1E293B',
+            borderBottom: '1px solid var(--vx-border, #1E293B)',
             padding: '1rem 1.5rem',
-            backgroundColor: '#0F172A',
+            backgroundColor: 'var(--vx-surface, #0F172A)',
             gap: '1rem',
           }}
         >
@@ -351,6 +370,28 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              onClick={toggleTheme}
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+              aria-label="Toggle Theme Mode"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid var(--vx-border, #334155)',
+                backgroundColor: 'var(--vx-surface-elevated, #111A2E)',
+                color: 'var(--vx-text-primary, #F8FAFC)',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <span>{theme === 'dark' ? '☀️' : '🌙'}</span>
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
+
             <span
               style={{
                 background: 'rgba(16, 185, 129, 0.1)',

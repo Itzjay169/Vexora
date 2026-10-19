@@ -29,6 +29,18 @@
   --vx-radius-full: 9999px;
 }
 
+[data-theme="light"] {
+  --vx-bg: #F8FAFC;
+  --vx-surface: #FFFFFF;
+  --vx-surface-elevated: #F1F5F9;
+  --vx-surface-highlight: #E2E8F0;
+  --vx-border: #CBD5E1;
+  --vx-border-subtle: #E2E8F0;
+  --vx-text-primary: #0F172A;
+  --vx-text-secondary: #475569;
+  --vx-text-muted: #94A3B8;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
