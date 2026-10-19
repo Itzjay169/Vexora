@@ -95,10 +95,11 @@ export default function AdminDashboardPage() {
 
         {/* ─── Metric Cards Grid ────────────────────────────────────────────── */}
         <section
+          className="admin-metric-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '1.5rem',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1.25rem',
             marginBottom: '2rem',
           }}
         >

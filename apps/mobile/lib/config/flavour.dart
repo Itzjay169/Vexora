@@ -2,6 +2,7 @@
 enum AppFlavour {
   player,
   organiser,
+  admin,
 }
 
 class AppConfig {
@@ -23,6 +24,7 @@ class AppConfig {
 
   bool get isPlayer => flavour == AppFlavour.player;
   bool get isOrganiser => flavour == AppFlavour.organiser;
+  bool get isAdmin => flavour == AppFlavour.admin;
 
   static const AppConfig playerConfig = AppConfig(
     flavour: AppFlavour.player,
@@ -40,5 +42,14 @@ class AppConfig {
     appVersion: '1.0.0',
     buildNumber: 1,
     bundleId: 'com.vexora.organiser',
+  );
+
+  static const AppConfig adminConfig = AppConfig(
+    flavour: AppFlavour.admin,
+    appName: 'Vexora Admin',
+    apiBaseUrl: 'http://localhost:3000/api/v1',
+    appVersion: '1.0.0',
+    buildNumber: 1,
+    bundleId: 'com.vexora.admin',
   );
 }

@@ -14,10 +14,15 @@ import 'leaderboard_screen.dart';
 import 'organiser_ratings_screen.dart';
 import 'wallet_screen.dart';
 
+import 'dispute_moderation_screen.dart';
+import 'organiser_verification_screen.dart';
+import 'analytics_dashboard_screen.dart';
+
 /// Main Mobile Application Shell
 /// Adapts dynamically to AppFlavour:
 ///   - Player Flavour: Home (Explore/Lobby), Tournaments, My Matches, Profile
 ///   - Organiser Flavour: Dashboard, Create Tournament, Verify/Disputes, Profile
+///   - Admin Flavour: Console Overview, Dispute Arbitration, Organiser Approvals, Analytics
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -34,66 +39,97 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final currentFlavour = ref.watch(flavourProvider);
     final isPlayer = currentFlavour == AppFlavour.player;
     final isOrganiser = currentFlavour == AppFlavour.organiser;
+    final isAdmin = currentFlavour == AppFlavour.admin;
 
-    final List<Widget> pages = isPlayer
+    final List<Widget> pages = isAdmin
         ? [
-            _PlayerHomeScreen(onExploreTournaments: () => setState(() => _currentIndex = 1)),
-            const TournamentDiscoveryScreen(),
-            const _PlayerMatchesScreen(),
-            const ProfileScreen(),
+            _AdminMobileHomeView(onNavigateTab: (tab) => setState(() => _currentIndex = tab)),
+            const DisputeModerationScreen(),
+            const OrganiserVerificationScreen(),
+            const AnalyticsDashboardScreen(),
           ]
-        : [
-            const OrganiserDashboardScreen(),
-            const _OrganiserCreateScreen(),
-            const _OrganiserResultsScreen(),
-            const ProfileScreen(),
-          ];
+        : isPlayer
+            ? [
+                _PlayerHomeScreen(onExploreTournaments: () => setState(() => _currentIndex = 1)),
+                const TournamentDiscoveryScreen(),
+                const _PlayerMatchesScreen(),
+                const ProfileScreen(),
+              ]
+            : [
+                const OrganiserDashboardScreen(),
+                const _OrganiserCreateScreen(),
+                const _OrganiserResultsScreen(),
+                const ProfileScreen(),
+              ];
 
-    final List<BottomNavigationBarItem> navItems = isPlayer
+    final List<BottomNavigationBarItem> navItems = isAdmin
         ? const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home_rounded),
-              label: 'Home',
+              icon: Icon(Icons.admin_panel_settings_outlined),
+              activeIcon: Icon(Icons.admin_panel_settings_rounded),
+              label: 'Console',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.emoji_events_outlined),
-              activeIcon: Icon(Icons.emoji_events_rounded),
-              label: 'Tournaments',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.sports_esports_outlined),
-              activeIcon: Icon(Icons.sports_esports_rounded),
-              label: 'Matches',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Profile',
-            ),
-          ]
-        : const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_outlined),
-              activeIcon: Icon(Icons.dashboard_rounded),
-              label: 'Dashboard',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle_outline_rounded),
-              activeIcon: Icon(Icons.add_circle_rounded),
-              label: 'Create',
+              icon: Icon(Icons.gavel_outlined),
+              activeIcon: Icon(Icons.gavel_rounded),
+              label: 'Disputes',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.verified_outlined),
               activeIcon: Icon(Icons.verified_rounded),
-              label: 'Verify',
+              label: 'Approvals',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Profile',
+              icon: Icon(Icons.analytics_outlined),
+              activeIcon: Icon(Icons.analytics_rounded),
+              label: 'Analytics',
             ),
-          ];
+          ]
+        : isPlayer
+            ? const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_outlined),
+                  activeIcon: Icon(Icons.home_rounded),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.emoji_events_outlined),
+                  activeIcon: Icon(Icons.emoji_events_rounded),
+                  label: 'Tournaments',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.sports_esports_outlined),
+                  activeIcon: Icon(Icons.sports_esports_rounded),
+                  label: 'Matches',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline_rounded),
+                  activeIcon: Icon(Icons.person_rounded),
+                  label: 'Profile',
+                ),
+              ]
+            : const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.dashboard_outlined),
+                  activeIcon: Icon(Icons.dashboard_rounded),
+                  label: 'Dashboard',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.add_circle_outline_rounded),
+                  activeIcon: Icon(Icons.add_circle_rounded),
+                  label: 'Create',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.verified_outlined),
+                  activeIcon: Icon(Icons.verified_rounded),
+                  label: 'Verify',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline_rounded),
+                  activeIcon: Icon(Icons.person_rounded),
+                  label: 'Profile',
+                ),
+              ];
 
     return Scaffold(
       backgroundColor: VexoraColors.bgDark,
@@ -105,7 +141,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: isOrganiser ? VexoraColors.secondary : VexoraColors.primary,
+                color: isAdmin
+                    ? VexoraColors.accent
+                    : (isOrganiser ? VexoraColors.secondary : VexoraColors.primary),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: const Text(
@@ -119,22 +157,76 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: (isOrganiser ? VexoraColors.secondary : VexoraColors.primary).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: (isOrganiser ? VexoraColors.secondary : VexoraColors.primary).withValues(alpha: 0.3),
+            PopupMenuButton<AppFlavour>(
+              tooltip: 'Switch Mode',
+              onSelected: (flavour) {
+                ref.read(flavourProvider.notifier).state = flavour;
+                setState(() => _currentIndex = 0);
+              },
+              color: VexoraColors.surfaceElevatedDark,
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: AppFlavour.player,
+                  child: Row(
+                    children: [
+                      Icon(Icons.sports_esports_rounded, color: VexoraColors.primary, size: 18),
+                      SizedBox(width: 8),
+                      Text('Player Mode', style: TextStyle(color: VexoraColors.textPrimaryDark, fontSize: 13)),
+                    ],
+                  ),
                 ),
-              ),
-              child: Text(
-                isOrganiser ? 'ORGANISER' : 'PLAYER',
-                style: TextStyle(
-                  color: isOrganiser ? VexoraColors.secondary : VexoraColors.primary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
+                const PopupMenuItem(
+                  value: AppFlavour.organiser,
+                  child: Row(
+                    children: [
+                      Icon(Icons.shield_rounded, color: VexoraColors.secondary, size: 18),
+                      SizedBox(width: 8),
+                      Text('Organiser Mode', style: TextStyle(color: VexoraColors.textPrimaryDark, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: AppFlavour.admin,
+                  child: Row(
+                    children: [
+                      Icon(Icons.admin_panel_settings_rounded, color: VexoraColors.accent, size: 18),
+                      SizedBox(width: 8),
+                      Text('Admin Mode', style: TextStyle(color: VexoraColors.textPrimaryDark, fontSize: 13)),
+                    ],
+                  ),
+                ),
+              ],
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (isAdmin
+                          ? VexoraColors.accent
+                          : (isOrganiser ? VexoraColors.secondary : VexoraColors.primary))
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(
+                    color: (isAdmin
+                            ? VexoraColors.accent
+                            : (isOrganiser ? VexoraColors.secondary : VexoraColors.primary))
+                        .withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isAdmin ? 'ADMIN' : (isOrganiser ? 'ORGANISER' : 'PLAYER'),
+                      style: TextStyle(
+                        color: isAdmin
+                            ? VexoraColors.accent
+                            : (isOrganiser ? VexoraColors.secondary : VexoraColors.primary),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const Icon(Icons.arrow_drop_down, size: 14, color: VexoraColors.textSecondaryDark),
+                  ],
                 ),
               ),
             ),
@@ -163,6 +255,21 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 child: Text('ଓଡ଼ିଆ (Odia)', style: TextStyle(color: VexoraColors.textPrimaryDark)),
               ),
             ],
+          ),
+          // Theme Toggle Button
+          IconButton(
+            icon: Icon(
+              ref.watch(themeModeProvider) == ThemeMode.dark
+                  ? Icons.light_mode_rounded
+                  : Icons.dark_mode_rounded,
+              color: VexoraColors.textSecondaryDark,
+            ),
+            tooltip: 'Toggle Theme',
+            onPressed: () {
+              final current = ref.read(themeModeProvider);
+              ref.read(themeModeProvider.notifier).state =
+                  current == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+            },
           ),
           IconButton(
             icon: const Icon(Icons.leaderboard_rounded, color: VexoraColors.textSecondaryDark),
@@ -714,3 +821,410 @@ class _TournamentPreviewCard extends StatelessWidget {
     );
   }
 }
+
+// ─── ADMIN CONSOLE VIEW (MOBILE) ─────────────────────────────────────────────
+
+class _AdminMobileHomeView extends StatelessWidget {
+  final ValueChanged<int>? onNavigateTab;
+
+  const _AdminMobileHomeView({this.onNavigateTab});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ─── Header Card: Zero-Trust Security Banner ─────────────────────────
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F172A), Color(0xFF1E1B4B)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: VexoraColors.accent.withValues(alpha: 0.35)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.shield_rounded, color: VexoraColors.accent, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'ZERO-TRUST MOBILE ADMIN',
+                          style: TextStyle(
+                            color: VexoraColors.accent,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: VexoraColors.success.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: VexoraColors.success.withValues(alpha: 0.3)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.lock_rounded, size: 11, color: VexoraColors.success),
+                          SizedBox(width: 4),
+                          Text(
+                            'MFA ACTIVE',
+                            style: TextStyle(color: VexoraColors.success, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Administrative Overview & Queue',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Adjudicate pending match disputes, verify organiser credentials, and oversee the immutable ledger on mobile.',
+                  style: TextStyle(
+                    color: VexoraColors.textSecondaryDark,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // ─── Operational Health & Queues Grid ──────────────────────────────
+          const Text(
+            'Operational Health & Queues',
+            style: TextStyle(color: VexoraColors.textPrimaryDark, fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _MetricTile(
+                  label: 'Pending Disputes',
+                  value: '2',
+                  icon: Icons.gavel_rounded,
+                  color: VexoraColors.stateDisputed,
+                  badge: 'Urgent',
+                  onTap: () => onNavigateTab?.call(1),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _MetricTile(
+                  label: 'Org Approvals',
+                  value: '4',
+                  icon: Icons.verified_user_rounded,
+                  color: VexoraColors.trustVerified,
+                  badge: 'Review',
+                  onTap: () => onNavigateTab?.call(2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _MetricTile(
+                  label: 'Escrow Holds',
+                  value: '₹2,50,000',
+                  icon: Icons.lock_outline_rounded,
+                  color: VexoraColors.primaryGold,
+                  onTap: () => onNavigateTab?.call(3),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _MetricTile(
+                  label: 'Audit Chain',
+                  value: 'VALID',
+                  icon: Icons.link_rounded,
+                  color: VexoraColors.success,
+                  onTap: () => onNavigateTab?.call(3),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // ─── Action Queues ────────────────────────────────────────────────
+          const Text(
+            'High-Priority Action Queues',
+            style: TextStyle(color: VexoraColors.textPrimaryDark, fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+
+          // Action 1: Disputes
+          _AdminActionCard(
+            title: 'Dispute Adjudication Queue',
+            subtitle: '2 match result protests pending evidence review (BGMI Pro Cup & Free Fire Finals).',
+            icon: Icons.gavel_rounded,
+            iconColor: VexoraColors.stateDisputed,
+            actionLabel: 'Review Protests',
+            onTap: () => onNavigateTab?.call(1),
+          ),
+          const SizedBox(height: 10),
+
+          // Action 2: Organiser KYC
+          _AdminActionCard(
+            title: 'Organiser Verification Queue',
+            subtitle: '4 community organisers submitted identity docs and tournament track records.',
+            icon: Icons.verified_user_rounded,
+            iconColor: VexoraColors.trustVerified,
+            actionLabel: 'Verify Organisers',
+            onTap: () => onNavigateTab?.call(2),
+          ),
+          const SizedBox(height: 10),
+
+          // Action 3: Maker-Checker Payout
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: VexoraColors.surfaceElevatedDark,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: VexoraColors.primaryGold.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.account_balance_wallet_rounded, color: VexoraColors.primaryGold, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Maker-Checker Payout Queue',
+                          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: VexoraColors.primaryGold.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        '1 PENDING DUAL APPROVAL',
+                        style: TextStyle(color: VexoraColors.primaryGold, fontSize: 9, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '₹15,000 withdrawal hold awaiting secondary distinct administrator sign-off. Self-approval is strictly forbidden by ledger rules.',
+                  style: TextStyle(color: VexoraColors.textSecondaryDark, fontSize: 11, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ─── Platform Safeguards & Live Status ─────────────────────────────
+          const Text(
+            'Security & Compliance Safeguards',
+            style: TextStyle(color: VexoraColors.textPrimaryDark, fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF070B14),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: VexoraColors.borderDark),
+            ),
+            child: const Column(
+              children: [
+                _StatusRow(label: 'Double-Entry Ledger Invariant', status: 'SUM(amount) = 0 ✓', isSuccess: true),
+                Divider(color: Color(0xFF1E293B), height: 16),
+                _StatusRow(label: 'Tamper-Evident SHA-256 Chain', status: 'VERIFIED HASH ✓', isSuccess: true),
+                Divider(color: Color(0xFF1E293B), height: 16),
+                _StatusRow(label: 'v1 Public Launch Policy', status: '100% FREE TOURNAMENTS', isSuccess: true),
+                Divider(color: Color(0xFF1E293B), height: 16),
+                _StatusRow(label: 'Real-Time WebSocket Gateway', status: 'ONLINE // SEQ #1428', isSuccess: true),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final String? badge;
+  final VoidCallback? onTap;
+
+  const _MetricTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.badge,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: VexoraColors.surfaceElevatedDark,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: VexoraColors.borderDark),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(label, style: const TextStyle(color: VexoraColors.textMutedDark, fontSize: 11, fontWeight: FontWeight.w600)),
+                Icon(icon, color: color, size: 18),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(value, style: TextStyle(color: color, fontSize: 17, fontWeight: FontWeight.bold)),
+                if (badge != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(badge!, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AdminActionCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color iconColor;
+  final String actionLabel;
+  final VoidCallback onTap;
+
+  const _AdminActionCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.iconColor,
+    required this.actionLabel,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: VexoraColors.surfaceElevatedDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: VexoraColors.borderDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(subtitle, style: const TextStyle(color: VexoraColors.textSecondaryDark, fontSize: 11, height: 1.4)),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: onTap,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                foregroundColor: iconColor,
+              ),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+              label: Text(actionLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusRow extends StatelessWidget {
+  final String label;
+  final String status;
+  final bool isSuccess;
+
+  const _StatusRow({required this.label, required this.status, required this.isSuccess});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: VexoraColors.textSecondaryDark, fontSize: 11)),
+        Text(
+          status,
+          style: TextStyle(
+            color: isSuccess ? VexoraColors.success : VexoraColors.stateDisputed,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+}
+

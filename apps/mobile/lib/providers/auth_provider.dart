@@ -204,3 +204,7 @@ final localeProvider = StateProvider<Locale>((ref) {
 final flavourProvider = StateProvider<AppFlavour>((ref) {
   return AppFlavour.player;
 });
+
+final themeModeProvider = StateProvider<ThemeMode>((ref) {
+  return ThemeMode.dark;
+});

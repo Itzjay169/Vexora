@@ -132,6 +132,7 @@ const NAV_ITEMS: NavItem[] = [
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAdminAuth();
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   // If user is not authenticated or not loaded yet, default to SUPER_ADMIN for preview or render
   const currentRole: AdminRole = user?.role || 'SUPER_ADMIN';
@@ -143,8 +144,24 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0B0F19' }}>
+      {/* Mobile Drawer Backdrop */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 45,
+          }}
+          aria-hidden="true"
+        />
+      )}
+
       {/* ─── Sidebar ────────────────────────────────────────────────────────── */}
       <aside
+        className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}
         style={{
           width: '280px',
           backgroundColor: '#0F172A',
@@ -153,6 +170,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
+          overflowY: 'auto',
+          maxHeight: '100vh',
         }}
       >
         <div>
@@ -205,6 +224,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => setSidebarOpen(false)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -262,45 +282,67 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ─── Main Content Area ──────────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', overflowX: 'hidden' }}>
         <header
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             borderBottom: '1px solid #1E293B',
-            padding: '1rem 2rem',
+            padding: '1rem 1.5rem',
             backgroundColor: '#0F172A',
+            gap: '1rem',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '0.875rem', color: '#94A3B8' }}>Security Level:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="admin-mobile-toggle"
+              aria-label="Toggle Admin Navigation Menu"
+              aria-expanded={sidebarOpen}
+              style={{
+                display: 'none',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0.45rem 0.65rem',
+                borderRadius: '6px',
+                backgroundColor: '#1E293B',
+                border: '1px solid #334155',
+                color: '#F8FAFC',
+                cursor: 'pointer',
+                fontSize: '1rem',
+              }}
+            >
+              {sidebarOpen ? '✕' : '☰'}
+            </button>
+
+            <span style={{ fontSize: '0.8125rem', color: '#94A3B8' }}>Security Level:</span>
             <span
               style={{
                 background: 'rgba(99, 102, 241, 0.1)',
                 color: '#818CF8',
-                padding: '0.25rem 0.75rem',
+                padding: '0.2rem 0.6rem',
                 borderRadius: '9999px',
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 border: '1px solid rgba(99, 102, 241, 0.3)',
               }}
             >
-              Zero-Trust Guard Active
+              Zero-Trust Guard
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <span
               style={{
                 background: 'rgba(16, 185, 129, 0.1)',
                 color: '#10B981',
-                padding: '0.375rem 0.875rem',
+                padding: '0.3rem 0.75rem',
                 borderRadius: '9999px',
-                fontSize: '0.8125rem',
+                fontSize: '0.75rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
+                gap: '0.4rem',
                 border: '1px solid rgba(16, 185, 129, 0.2)',
               }}
             >
@@ -310,7 +352,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+        <main className="admin-main-padding" style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
           {children}
         </main>
       </div>

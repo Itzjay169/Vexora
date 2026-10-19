@@ -1,4 +1,4 @@
-import { ResultVerificationViewer } from '@/components/ResultVerificationViewer';
+import { ResultVerificationViewer } from '../../../components/ResultVerificationViewer';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {

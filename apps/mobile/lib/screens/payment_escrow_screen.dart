@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/vexora_theme.dart';
 
 /// Phase 27: Payments, Prize Escrow & Paid Tournament Flow Screen
 /// Blueprint Ref: Sections 9, 26, 39 (Phase 6)
@@ -275,12 +274,12 @@ class _PaymentEscrowScreenState extends State<PaymentEscrowScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: _selectedProvider === 'RAZORPAY'
+                          color: _selectedProvider == 'RAZORPAY'
                               ? const Color(0xFF00FF87).withOpacity(0.1)
                               : const Color(0xFF13141F),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _selectedProvider === 'RAZORPAY'
+                            color: _selectedProvider == 'RAZORPAY'
                                 ? const Color(0xFF00FF87)
                                 : const Color(0xFF2A2B3D),
                           ),
@@ -309,12 +308,12 @@ class _PaymentEscrowScreenState extends State<PaymentEscrowScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: _selectedProvider === 'CASHFREE'
+                          color: _selectedProvider == 'CASHFREE'
                               ? const Color(0xFF00FF87).withOpacity(0.1)
                               : const Color(0xFF13141F),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _selectedProvider === 'CASHFREE'
+                            color: _selectedProvider == 'CASHFREE'
                                 ? const Color(0xFF00FF87)
                                 : const Color(0xFF2A2B3D),
                           ),

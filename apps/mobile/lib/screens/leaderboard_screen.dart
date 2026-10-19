@@ -39,10 +39,8 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     with SingleTickerProviderStateMixin {
   late TabController _gameTabController;
   String _selectedSeason = 'Season 1 (Active)';
-  bool _isLoading = false;
 
   final List<String> _gameTitles = ['BGMI', 'Free Fire MAX', 'CODM'];
-  final List<String> _gameSlugs = ['bgmi', 'freefire', 'codm'];
 
   // Seeded competitive players for demonstration
   final List<LeaderboardPlayer> _mockBgmiStandings = const [

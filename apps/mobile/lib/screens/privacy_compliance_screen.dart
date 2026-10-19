@@ -38,7 +38,6 @@ class _PrivacyComplianceScreenState extends State<PrivacyComplianceScreen>
   bool _profilingRecsConsent = true;
 
   // Guardian consent state
-  final bool _isMinor = false;
   final String _guardianStatus = 'VERIFIED'; // 'PENDING' | 'VERIFIED' | 'NOT_REQUIRED'
 
   // Localisation dictionary

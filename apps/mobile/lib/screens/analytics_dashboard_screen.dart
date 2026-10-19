@@ -38,11 +38,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   final List<Map<String, int>> _history = List.generate(
     14,
     (i) => {
-      return {
-        'kills': (i * 3 + 5) % 17 + 2,
-        'wins': (i * 2 + 1) % 4,
-        'matches': (i % 3) + 1,
-      };
+      'kills': (i * 3 + 5) % 17 + 2,
+      'wins': (i * 2 + 1) % 4,
+      'matches': (i % 3) + 1,
     },
   );
 

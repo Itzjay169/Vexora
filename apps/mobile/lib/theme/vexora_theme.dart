@@ -38,6 +38,21 @@ class VexoraColors {
   // Trust Tokens
   static const Color trustVerified = Color(0xFF38BDF8);
   static const Color trustHashTick = Color(0xFF10B981);
+
+  // Canonical Design Token Aliases (Cross-Screen Consistency)
+  static const Color primaryIndigo = primary;
+  static const Color primaryCyan = accent;
+  static const Color primaryGold = Color(0xFFF59E0B);
+  static const Color accentBlue = trustVerified;
+  static const Color backgroundDark = bgDark;
+  static const Color bgDeep = bgDark;
+  static const Color cardDark = surfaceElevatedDark;
+  static const Color surfaceCard = surfaceElevatedDark;
+  static const Color border = borderDark;
+  static const Color textPrimary = textPrimaryDark;
+  static const Color textSecondary = textSecondaryDark;
+  static const Color textMuted = textMutedDark;
+  static const Color error = stateDisputed;
 }
 
 class VexoraTheme {

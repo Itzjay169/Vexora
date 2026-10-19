@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/vexora_theme.dart';
 
 /// Phase 28: Payouts, Reconciliation & Financial Reports Screen
 /// Blueprint Ref: Sections 8, 9, 47 (Wallet and payout security)
@@ -155,7 +154,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
                     setState(() {
                       _destinations.add({
                         'id': 'dest-upi-${DateTime.now().millisecondsSinceEpoch}',
-                        'type': 'UPI',
+                        'type': type,
                         'details': upiCtrl.text.trim(),
                         'holder_name': nameCtrl.text.trim(),
                         'is_cooling_off': true,

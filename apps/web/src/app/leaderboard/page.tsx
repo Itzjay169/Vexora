@@ -1,4 +1,4 @@
-import { LeaderboardViewer } from '@/components/LeaderboardViewer';
+import { LeaderboardViewer } from '../../components/LeaderboardViewer';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {

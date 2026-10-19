@@ -260,7 +260,7 @@ class _OrganiserVerificationScreenState extends State<OrganiserVerificationScree
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Public Trust Indicators',

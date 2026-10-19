@@ -28,6 +28,7 @@ class VexoraApp extends StatelessWidget {
         builder: (context, ref, _) {
           final locale = ref.watch(localeProvider);
           final authState = ref.watch(authProvider);
+          final themeMode = ref.watch(themeModeProvider);
 
           return MaterialApp(
             title: 'Vexora Esports',
@@ -41,7 +42,9 @@ class VexoraApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             // Vexora Electric Indigo (0xFF6366F1) with Brightness.dark default
-            theme: VexoraTheme.darkTheme,
+            theme: VexoraTheme.lightTheme,
+            darkTheme: VexoraTheme.darkTheme,
+            themeMode: themeMode,
             home: _RootNavigationRouter(authState: authState),
           );
         },

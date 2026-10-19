@@ -222,7 +222,7 @@ export function OrganiserConsole() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
           <button
             onClick={() => setShowAnnounceModal(true)}
             style={{

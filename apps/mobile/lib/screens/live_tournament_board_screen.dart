@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/vexora_theme.dart';
 
 /// Phase 29: Live Tournament Board & Real-Time Gateway Screen
 /// Blueprint Ref: Sections 14, 39 (Phase 7)
