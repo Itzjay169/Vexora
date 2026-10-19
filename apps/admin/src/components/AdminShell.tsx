@@ -110,6 +110,24 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['SUPER_ADMIN', 'ADMIN'],
   },
   {
+    name: 'Release & Kill-Switches',
+    href: '/release',
+    icon: '🚀',
+    roles: ['SUPER_ADMIN', 'ADMIN'],
+  },
+  {
+    name: 'Pilot & Closed Beta',
+    href: '/pilot',
+    icon: '🧪',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'MODERATOR'],
+  },
+  {
+    name: 'Controlled Launch & DoD',
+    href: '/launch',
+    icon: '🌐',
+    roles: ['SUPER_ADMIN', 'ADMIN', 'AUDITOR'],
+  },
+  {
     name: 'Audit Hash Chain',
     href: '/audit',
     icon: '⛓️',

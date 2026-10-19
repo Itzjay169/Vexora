@@ -37,6 +37,9 @@ import { realtimeRouter } from './realtime/realtime.routes.js';
 import { analyticsRouter } from './analytics/analytics.routes.js';
 import { extendedRouter } from './extended/extended.routes.js';
 import { complianceRouter } from './compliance/compliance.routes.js';
+import { releaseRouter } from './release/release.routes.js';
+import { pilotRouter } from './pilot/pilot.routes.js';
+import { launchRouter } from './launch/launch.routes.js';
 import { setupWebSocketServer } from './common/websocket.js';
 import { healthRouter } from './common/health.js';
 import { wafMiddleware } from './common/wafMiddleware.js';
@@ -138,6 +141,9 @@ app.use('/api/v1/realtime',       realtimeRouter);
 app.use('/api/v1/analytics',      analyticsRouter);
 app.use('/api/v1/extended',       extendedRouter);
 app.use('/api/v1/compliance',     complianceRouter);
+app.use('/api/v1/release',        releaseRouter);
+app.use('/api/v1/pilot',          pilotRouter);
+app.use('/api/v1/launch',         launchRouter);
 
 // ─── OpenAPI Spec Endpoint ──────────────────────────────────────────────
 app.get('/api/v1/docs/openapi.json', (_req, res) => {

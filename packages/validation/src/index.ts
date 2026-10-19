@@ -1569,6 +1569,235 @@ export type StatutoryTakedownCreateInput = z.infer<typeof StatutoryTakedownCreat
 export const SupportedLocale = z.enum(['en', 'hi', 'or']);
 export type SupportedLocale = z.infer<typeof SupportedLocale>;
 
+// ─── Phase 38: Store Preparation & Release Candidate Schemas ─────────────────
+
+export const ReleaseCandidateStatus = z.enum([
+  'PENDING',
+  'APPROVED',
+  'REJECTED',
+  'ROLLED_OUT',
+  'ROLLED_BACK',
+  'ARCHIVED',
+]);
+export type ReleaseCandidateStatus = z.infer<typeof ReleaseCandidateStatus>;
+
+export const TestRunType = z.enum([
+  'UNIT',
+  'INTEGRATION',
+  'CONTRACT',
+  'MUTATION',
+  'PROPERTY',
+  'FUZZ',
+  'E2E',
+  'ACCESSIBILITY',
+  'VISUAL',
+]);
+export type TestRunType = z.infer<typeof TestRunType>;
+
+export const TestRunStatus = z.enum(['PASS', 'FAIL', 'WARN']);
+export type TestRunStatus = z.infer<typeof TestRunStatus>;
+
+export const RolloutAction = z.enum([
+  'INCREMENT',
+  'DECREMENT',
+  'PAUSE',
+  'ROLLBACK',
+  'COMPLETE',
+]);
+export type RolloutAction = z.infer<typeof RolloutAction>;
+
+export const ReleaseCandidateCreateSchema = z.object({
+  rc_tag: z.string().regex(/^v\d+\.\d+\.\d+(-rc\.\d+)?$/, 'Must match vMAJOR.MINOR.PATCH(-rc.N) format'),
+  version_name: z.string().min(1).max(50),
+  version_code: z.number().int().positive(),
+  git_sha: z.string().length(40, 'Must be a full 40-character git SHA'),
+  build_url: z.string().url().optional(),
+  notes: z.string().max(2000).optional(),
+});
+export type ReleaseCandidateCreateInput = z.infer<typeof ReleaseCandidateCreateSchema>;
+
+export const ReleaseCandidateApproveStep1Schema = z.object({
+  rc_id: z.string().uuid(),
+  notes: z.string().max(1000).optional(),
+});
+export type ReleaseCandidateApproveStep1Input = z.infer<typeof ReleaseCandidateApproveStep1Schema>;
+
+export const ReleaseCandidateApproveStep2Schema = z.object({
+  rc_id: z.string().uuid(),
+  confirmation_statement: z.string().min(10, 'Must provide confirmation statement'),
+});
+export type ReleaseCandidateApproveStep2Input = z.infer<typeof ReleaseCandidateApproveStep2Schema>;
+
+export const FeatureFlagSetSchema = z.object({
+  flag_key: z.string().min(3).max(100),
+  new_value: z.boolean(),
+  reason: z.string().min(5).max(500),
+  approver1_id: z.string().uuid().optional(),
+  approver2_id: z.string().uuid().optional(),
+});
+export type FeatureFlagSetInput = z.infer<typeof FeatureFlagSetSchema>;
+
+export const RegressionTestRunLogSchema = z.object({
+  rc_id: z.string().uuid(),
+  run_type: TestRunType,
+  environment: z.enum(['local', 'ci', 'staging', 'pre-prod']).default('staging'),
+  total_tests: z.number().int().positive(),
+  passing_tests: z.number().int().min(0),
+  failing_tests: z.number().int().min(0).default(0),
+  status: TestRunStatus,
+  report_url: z.string().url().optional(),
+  failure_summary: z.string().max(4000).optional(),
+});
+export type RegressionTestRunLogInput = z.infer<typeof RegressionTestRunLogSchema>;
+
+export const RolloutRecordSchema = z.object({
+  rc_id: z.string().uuid(),
+  previous_pct: z.number().int().min(0).max(100),
+  new_pct: z.number().int().min(0).max(100),
+  action: RolloutAction,
+  crash_free_rate: z.number().min(0).max(100).optional(),
+  dispute_rate: z.number().min(0).max(100).optional(),
+  anr_rate: z.number().min(0).max(100).optional(),
+  reason: z.string().min(5).max(500),
+});
+export type RolloutRecordInput = z.infer<typeof RolloutRecordSchema>;
+
+// ─── Phase 39: Closed Beta & Pilot Tournaments Schemas ───────────────────────
+
+export const BetaTesterType = z.enum(['PLAYER', 'ORGANISER', 'MODERATOR']);
+export type BetaTesterType = z.infer<typeof BetaTesterType>;
+
+export const DistributionChannel = z.enum([
+  'ANDROID_PLAY_INTERNAL',
+  'FIREBASE_APP_DISTRIBUTION',
+  'IOS_TESTFLIGHT',
+]);
+export type DistributionChannel = z.infer<typeof DistributionChannel>;
+
+export const BetaTesterStatus = z.enum(['INVITED', 'ACTIVE', 'REVOKED', 'COMPLETED']);
+export type BetaTesterStatus = z.infer<typeof BetaTesterStatus>;
+
+export const BetaTesterEnrollSchema = z.object({
+  email: z.string().email(),
+  display_name: z.string().min(2).max(100),
+  phone: z.string().min(10).max(20).optional(),
+  tester_type: BetaTesterType,
+  distribution_channel: DistributionChannel,
+  device_model: z.string().max(100).optional(),
+  os_version: z.string().max(50).optional(),
+});
+export type BetaTesterEnrollInput = z.infer<typeof BetaTesterEnrollSchema>;
+
+export const PilotTournamentCreateSchema = z.object({
+  tournament_id: z.string().uuid(),
+  pilot_code: z.string().regex(/^PILOT-[A-Z0-9]+-\d+$/, 'Must follow PILOT-<GAME>-<NUM> format'),
+  game_title: z.string().min(2).max(100),
+  standby_moderator_name: z.string().min(2).max(150),
+  incident_channel: z.string().min(2).max(100),
+  incident_phone_bridge: z.string().max(50).optional(),
+  target_participants: z.number().int().min(4).max(64).default(16),
+});
+export type PilotTournamentCreateInput = z.infer<typeof PilotTournamentCreateSchema>;
+
+export const PilotEvaluationSchema = z.object({
+  pilot_id: z.string().uuid(),
+  crash_free_rate: z.number().min(0).max(100),
+  disputes_raised: z.number().int().min(0),
+  disputes_resolved: z.number().int().min(0),
+  avg_resolution_minutes: z.number().min(0),
+  financial_discrepancy_cents: z.number().min(0).max(0, 'Financial discrepancy must be exactly 0 for launch approval'),
+  incident_count: z.number().int().min(0),
+  evaluation_notes: z.string().min(10).max(4000),
+});
+export type PilotEvaluationInput = z.infer<typeof PilotEvaluationSchema>;
+
+export const BetaFeedbackType = z.enum(['BUG', 'FEATURE_REQUEST', 'UX_FRICTION', 'PERFORMANCE', 'CRASH']);
+export type BetaFeedbackType = z.infer<typeof BetaFeedbackType>;
+
+export const BetaFeedbackSeverity = z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
+export type BetaFeedbackSeverity = z.infer<typeof BetaFeedbackSeverity>;
+
+export const BetaFeedbackSubmitSchema = z.object({
+  author_email: z.string().email(),
+  feedback_type: BetaFeedbackType,
+  severity: BetaFeedbackSeverity.default('MEDIUM'),
+  title: z.string().min(5).max(200),
+  description: z.string().min(10).max(4000),
+  screen_name: z.string().max(100).optional(),
+  device_telemetry: z.record(z.any()).default({}),
+});
+export type BetaFeedbackSubmitInput = z.infer<typeof BetaFeedbackSubmitSchema>;
+
+export const IncidentRehearsalRecordSchema = z.object({
+  scenario_name: z.string().min(5).max(200),
+  scenario_type: z.enum([
+    'LEDGER_HOLD_FAILOVER',
+    'WEBHOOK_OUTAGE',
+    'DISPUTE_SPIKE',
+    'KILLSWITCH_TRIGGER',
+    'DSR_ERASURE_DRILL',
+  ]),
+  lead_engineer: z.string().min(2).max(150),
+  standby_moderator: z.string().min(2).max(150),
+  on_call_contact: z.string().min(5).max(100),
+  escalation_contact: z.string().min(5).max(100),
+  time_to_detect_seconds: z.number().int().min(0),
+  time_to_mitigate_seconds: z.number().int().min(0),
+  outcome: z.enum(['SUCCESS', 'PASSED_WITH_OBSERVATIONS', 'FAILED']),
+  killswitch_verified: z.boolean().default(true),
+  notes: z.string().max(2000).optional(),
+});
+export type IncidentRehearsalRecordInput = z.infer<typeof IncidentRehearsalRecordSchema>;
+
+// ─── Phase 40: Public Launch, Regional Gating & Section 52 DoD Schemas ──────
+
+export const RegionalRolloutUpdateSchema = z.object({
+  rollout_percentage: z.number().int().refine(
+    (val) => [0, 10, 25, 50, 100].includes(val),
+    'Rollout percentage must be 0, 10, 25, 50, or 100'
+  ),
+  status: z.enum(['STAGED_ROLLOUT', 'PUBLIC_ACTIVE', 'RESTRICTED', 'SUSPENDED']).optional(),
+  notes: z.string().max(1000).optional(),
+});
+export type RegionalRolloutUpdateInput = z.infer<typeof RegionalRolloutUpdateSchema>;
+
+export const EnablePaidFeaturesSchema = z.object({
+  legal_signoff_reference: z.string().min(5, 'Legal sign-off reference must be at least 5 characters').max(200),
+  signed_by_legal_officer: z.string().min(2, 'Legal officer name required').max(150),
+  jurisdiction_legal_brief: z.string().min(10, 'Jurisdiction legal summary required').max(2000),
+  compliance_certification_hash: z.string().regex(/^[a-f0-9]{64}$/, 'Must be a 64-character SHA-256 hash').optional(),
+});
+export type EnablePaidFeaturesInput = z.infer<typeof EnablePaidFeaturesSchema>;
+
+export const TransparencyReportPublishSchema = z.object({
+  report_code: z.string().regex(/^TR-\d{4}-Q[1-4]-\d+$/, 'Must follow TR-YYYY-QX-NNN format'),
+  reporting_period: z.string().min(5).max(100),
+  total_tournaments: z.number().int().min(0),
+  total_matches: z.number().int().min(0),
+  total_participants: z.number().int().min(0),
+  disputes_opened: z.number().int().min(0),
+  disputes_resolved: z.number().int().min(0),
+  avg_dispute_resolution_hours: z.number().min(0),
+  fair_play_sanctions_issued: z.number().int().min(0),
+  grievance_officer_tickets: z.number().int().min(0),
+  it_rules_takedowns_processed: z.number().int().min(0),
+  financial_discrepancy_count: z.number().int().min(0).max(0, 'Financial discrepancy must be exactly 0 for publication'),
+  published_by: z.string().min(2).max(150),
+  notes: z.string().max(2000).optional(),
+});
+export type TransparencyReportPublishInput = z.infer<typeof TransparencyReportPublishSchema>;
+
+export const DoDItemCertifySchema = z.object({
+  item_key: z.string().min(3).max(50),
+  verified_by: z.string().min(2).max(150),
+  verification_notes: z.string().min(10).max(4000),
+  evidence_ref: z.string().max(500).optional(),
+});
+export type DoDItemCertifyInput = z.infer<typeof DoDItemCertifySchema>;
+
+
+
+
 
 
 

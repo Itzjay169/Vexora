@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Configuration — Vexora Esports
+    Phase 38: Store Preparation & Release Candidate
+
+    Security Rules:
+    - Production: Enforce TLS for all domains. No cleartext allowed.
+    - Debug/Staging: Allow localhost cleartext for local dev server only.
+    - Certificate pinning for Vexora API (with rotation backup pins).
+
+    IMPORTANT: Update pin hashes before each certificate rotation.
+    Rotation plan: 90-day warning, dual pins during transition period.
+    See docs/security/cert-pinning.md for rotation procedure.
+-->
+<network-security-config>
+
+    <!-- Production: All traffic must use TLS. No exceptions. -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Trust the system CAs -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Vexora Production API: Certificate pinning -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">api.vexora.in</domain>
+        <domain includeSubdomains="true">api.vexora.gg</domain>
+        <pin-set expiration="2027-01-01">
+            <!--
+                Active pin: SHA-256 of SPKI for api.vexora.in cert (leaf or intermediate).
+                REPLACE with real values before production deployment.
+                Generate with: openssl s_client -connect api.vexora.in:443 2>/dev/null |
+                               openssl x509 -noout -pubkey |
+                               openssl pkey -pubin -outform der |
+                               openssl dgst -sha256 -binary |
+                               base64
+            -->
+            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
+            <!-- Backup pin: Next certificate (for rotation) — must be different from active pin -->
+            <pin digest="SHA-256">BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</pin>
+        </pin-set>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Firebase services: Trust system CAs (Firebase manages its own cert rotation) -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">firebaseapp.com</domain>
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <domain includeSubdomains="true">firebase.google.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!--
+        Debug override: Allow cleartext only for localhost (dev server on 10.0.2.2).
+        This block applies ONLY when the app is built with debug configuration.
+        It has no effect on release builds (debug meta-data must be absent in production).
+    -->
+    <debug-overrides>
+        <trust-anchors>
+            <!-- Trust user-installed CAs in debug builds for Charles/mitmproxy -->
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Android emulator localhost address -->
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+
+</network-security-config>

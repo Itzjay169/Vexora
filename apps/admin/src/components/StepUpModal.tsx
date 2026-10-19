@@ -7,6 +7,7 @@ interface StepUpModalProps {
   isOpen: boolean;
   title?: string;
   description?: string;
+  actionDescription?: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -14,10 +15,12 @@ interface StepUpModalProps {
 export function StepUpModal({
   isOpen,
   title = 'Step-Up Authentication Required',
-  description = 'This is a sensitive administrative action. Please re-enter your 6-digit TOTP MFA code to proceed.',
+  description,
+  actionDescription,
   onSuccess,
   onCancel,
 }: StepUpModalProps) {
+  const displayDescription = actionDescription || description || 'This is a sensitive administrative action. Please re-enter your 6-digit TOTP MFA code to proceed.';
   const { triggerStepUp } = useAdminAuth();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +80,7 @@ export function StepUpModal({
         </div>
 
         <p style={{ margin: '0 0 1.5rem', color: '#94A3B8', fontSize: '0.875rem', lineHeight: 1.5 }}>
-          {description}
+          {displayDescription}
         </p>
 
         {error && (

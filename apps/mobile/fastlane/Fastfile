@@ -1,0 +1,173 @@
+lane_version: "2.225.0"
+
+# Fastlane configuration for Vexora Android Release
+# Phase 38: Store Preparation & Release Candidate
+#
+# Usage:
+#   fastlane android build_rc       - Build release candidate APK + AAB
+#   fastlane android deploy_internal - Upload to Play Internal Testing
+#   fastlane android promote_beta   - Promote internal → closed beta
+#   fastlane android promote_prod   - Promote beta → production (staged rollout)
+#
+# Signing:
+#   Key alias, password, and keystore path must be in .env.fastlane (gitignored).
+#   Never commit keystore credentials.
+
+default_platform(:android)
+
+platform :android do
+  # ─────────────────────────────────────────────────────────────────────────────
+  # SETUP
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  before_all do
+    # Verify environment variables are present before any lane runs
+    ensure_env_vars(
+      env_vars: [
+        "KEYSTORE_PATH",
+        "KEY_ALIAS",
+        "KEY_PASSWORD",
+        "KEYSTORE_PASSWORD",
+        "PLAY_JSON_KEY_PATH",
+        "VEXORA_VERSION_NAME",
+        "VEXORA_VERSION_CODE",
+      ]
+    )
+  end
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # LANE: build_rc
+  # Produces a signed release AAB (Android App Bundle) and APK for the RC tag.
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  desc "Build a signed release candidate (AAB + APK)"
+  lane :build_rc do
+    # Run Flutter clean and get to ensure reproducible build
+    sh("flutter clean", chdir: "../")
+    sh("flutter pub get", chdir: "../")
+
+    # Run full Dart analysis — must be clean before release build
+    sh("flutter analyze --no-pub --fatal-infos --fatal-warnings", chdir: "../")
+
+    # Run Flutter unit tests
+    sh("flutter test", chdir: "../")
+
+    # Build App Bundle (AAB) for Play Store upload
+    sh(
+      "flutter build appbundle --release " \
+      "--dart-define=ENV=production " \
+      "--dart-define=API_BASE_URL=#{ENV['VEXORA_PROD_API_URL']} " \
+      "--obfuscate " \
+      "--split-debug-info=build/debug_info/ " \
+      "--build-name=#{ENV['VEXORA_VERSION_NAME']} " \
+      "--build-number=#{ENV['VEXORA_VERSION_CODE']}",
+      chdir: "../"
+    )
+
+    # Also build split APKs for QA on real devices
+    sh(
+      "flutter build apk --release --split-per-abi " \
+      "--dart-define=ENV=production " \
+      "--dart-define=API_BASE_URL=#{ENV['VEXORA_PROD_API_URL']} " \
+      "--obfuscate " \
+      "--split-debug-info=build/debug_info/ " \
+      "--build-name=#{ENV['VEXORA_VERSION_NAME']} " \
+      "--build-number=#{ENV['VEXORA_VERSION_CODE']}",
+      chdir: "../"
+    )
+
+    UI.success("✅ RC build complete: build/app/outputs/bundle/release/app-release.aab")
+  end
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # LANE: deploy_internal
+  # Upload AAB to Play Console → Internal Testing track.
+  # Requires: build_rc must have run first.
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  desc "Upload RC to Play Console Internal Testing track"
+  lane :deploy_internal do
+    build_rc
+
+    upload_to_play_store(
+      track: "internal",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      json_key: ENV["PLAY_JSON_KEY_PATH"],
+      package_name: "com.vexora.vexora_mobile",
+      skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
+      release_status: "draft", # Review before activating internally
+    )
+
+    UI.success("✅ AAB uploaded to Play Console Internal Testing (draft)")
+  end
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # LANE: promote_beta
+  # Promote internal → closed beta (Firebase App Distribution for wider testing).
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  desc "Promote Internal → Closed Beta (App Distribution)"
+  lane :promote_beta do
+    upload_to_play_store(
+      track: "internal",
+      track_promote_to: "alpha", # Google Play "Closed Testing"
+      json_key: ENV["PLAY_JSON_KEY_PATH"],
+      package_name: "com.vexora.vexora_mobile",
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+    )
+
+    UI.success("✅ Build promoted to Closed Beta (alpha) track")
+  end
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # LANE: promote_prod
+  # Staged rollout to production. Starts at 5% and must be manually expanded.
+  # Two-person approval REQUIRED before running this lane (security gate).
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  desc "Staged rollout to Production — 5% initial (REQUIRES TWO-PERSON APPROVAL)"
+  lane :promote_prod do
+    # Enforce two-person approval acknowledgement
+    confirmation = UI.input("⚠️  PRODUCTION DEPLOY: Enter the two-person approval token: ")
+    unless confirmation.match?(/^VEXORA-RC-APPROVED-[A-Z0-9]{8}$/)
+      UI.user_error!("Invalid approval token. Production deploy aborted.")
+    end
+
+    upload_to_play_store(
+      track: "alpha",
+      track_promote_to: "production",
+      rollout: "0.05", # 5% staged rollout
+      json_key: ENV["PLAY_JSON_KEY_PATH"],
+      package_name: "com.vexora.vexora_mobile",
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+    )
+
+    UI.success("✅ Staged rollout at 5% to Production — monitor crash-free rate before expanding")
+  end
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # LANE: size_report
+  # Reports APK/AAB size and method count for performance tracking.
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  desc "Generate build size and performance report"
+  lane :size_report do
+    sh("flutter build apk --release --analyze-size --target-platform android-arm64", chdir: "../")
+    UI.success("📊 Size analysis written to build/flutter_size_analysis/")
+  end
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # ERROR HANDLER
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  error do |lane, exception|
+    UI.error("❌ Lane #{lane} failed: #{exception.message}")
+    # In CI: send Slack notification via webhook
+    # notification(subtitle: "Vexora build failed", message: exception.message)
+  end
+end

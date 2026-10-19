@@ -1,0 +1,7 @@
+app_identifier("com.vexora.vexora_mobile")
+apple_id("")        # Not used for Android — placeholder for future iOS
+itc_team_id("")     # Not used for Android — placeholder for future iOS
+
+# Android Play Console configuration
+json_key_file(ENV["PLAY_JSON_KEY_PATH"] || "fastlane/play-api-key.json")
+package_name("com.vexora.vexora_mobile")

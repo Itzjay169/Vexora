@@ -1,8 +1,57 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.vexora.vexora_mobile">
+
+    <!--
+        Vexora Esports Tournament Platform
+        Phase 38: Store Preparation & Release Candidate
+        App ID: com.vexora.vexora_mobile
+        Version: 1.0.0+1
+
+        Permission Review:
+        - INTERNET: Required for all API communication
+        - POST_NOTIFICATIONS: Runtime-requested for FCM push (tournament updates, match starts)
+        - USE_BIOMETRIC / USE_FINGERPRINT: Runtime-requested for wallet payout authorization gate
+        - CAMERA: Runtime-requested for match evidence screenshot upload only
+        - READ_MEDIA_IMAGES (Android 13+) / READ_EXTERNAL_STORAGE (≤12): Runtime-requested for evidence upload
+        - VIBRATE: Normal permission for match-start haptic feedback
+        - RECEIVE_BOOT_COMPLETED: Normal permission for FCM alarm scheduling
+        NO location, contacts, microphone, or background location permissions.
+        All dangerous permissions are accompanied by in-context rationale dialogs.
+    -->
+
+    <!-- Normal permissions (no runtime prompt required) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Runtime permissions: Push Notifications (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Runtime permissions: Biometric authentication for wallet/payout authorization -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+
+    <!-- Runtime permissions: Camera for match result evidence upload ONLY -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Runtime permissions: Media access for evidence upload from gallery -->
+    <!-- Android 13+ (API 33): granular media permissions -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Android ≤12: legacy external storage (scoped to images via MediaStore) -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
     <application
-        android:label="vexora_mobile"
+        android:label="Vexora"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:usesCleartextTraffic="false"
+        android:networkSecurityConfig="@xml/network_security_config">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -12,34 +61,89 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
-            <!-- Specifies an Android theme to apply to this Activity as soon as
-                 the Android process has started. This theme is visible to the user
-                 while the Flutter UI initializes. After that, this theme continues
-                 to determine the Window background behind the Flutter UI. -->
+
+            <!-- Flutter theme splash screen -->
             <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
+
+            <!-- App entry point -->
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                Deep link: vexora://privacy/delete-account
+                Required by Google Play policy on in-app account deletion.
+                Maps to PrivacyComplianceScreen with account erasure section open.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="vexora"
+                    android:host="privacy"
+                    android:path="/delete-account" />
+            </intent-filter>
+
+            <!--
+                Deep link: https://vexora.in/app/...
+                App Links (verified) for tournament invites and share URLs.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="vexora.in"
+                    android:pathPrefix="/app/" />
             </intent-filter>
         </activity>
-        <!-- Don't delete the meta-data below.
-             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+
+        <!--
+            Firebase Cloud Messaging Service
+            Handles foreground/background push notification delivery.
+        -->
+        <service
+            android:name="com.google.firebase.messaging.FirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!--
+            Firebase App Check — enforced in production builds.
+            Prevents unauthorized API access from non-genuine app instances.
+            Provider: Play Integrity API (production) / Debug (dev only).
+        -->
+        <meta-data
+            android:name="com.google.firebase.appcheck.playintegrity.PLAY_INTEGRITY"
+            android:value="true" />
+
+        <!-- Flutter embedding version -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
-    <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility and
-         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
-         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <!--
+        Queries: Required for Android 11+ package visibility.
+        Allows querying apps that can handle text processing (Flutter engine requirement).
+    -->
     <queries>
         <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT"/>
-            <data android:mimeType="text/plain"/>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
+        </intent>
+        <!-- Allow UPI payment intent queries for payment aggregators -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" />
         </intent>
     </queries>
+
 </manifest>
