@@ -213,13 +213,27 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       >
         <div>
           {/* Header branding */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h2 style={{ fontSize: '1.25rem', color: '#6366F1', margin: 0, fontWeight: 700, letterSpacing: '0.05em' }}>
-              VEXORA ADMIN
-            </h2>
-            <p style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem', fontWeight: 500 }}>
-              Zero-Trust Console
-            </p>
+          <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <img
+              src="/logo.png"
+              alt="Vexora Emblem"
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '8px',
+                objectFit: 'cover',
+                boxShadow: '0 0 16px rgba(99, 102, 241, 0.4)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+              }}
+            />
+            <div>
+              <h2 style={{ fontSize: '1.125rem', color: '#6366F1', margin: 0, fontWeight: 800, letterSpacing: '0.05em' }}>
+                VEXORA <span style={{ color: 'var(--vx-text-primary, #F8FAFC)', fontSize: '0.9rem' }}>ADMIN</span>
+              </h2>
+              <p style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.15rem', fontWeight: 500 }}>
+                Zero-Trust Console
+              </p>
+            </div>
           </div>
 
           {/* Role pill */}

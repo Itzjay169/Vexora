@@ -24,22 +24,20 @@ export function Footer() {
       >
         {/* Brand & Mission */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <span
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '1rem' }}>
+            <img
+              src="/logo.png"
+              alt="Vexora Esports"
               style={{
-                background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
-                color: '#FFFFFF',
-                fontWeight: 900,
-                fontSize: '0.8125rem',
-                letterSpacing: '1px',
-                padding: '0.25rem 0.5rem',
+                width: '32px',
+                height: '32px',
                 borderRadius: '6px',
+                objectFit: 'cover',
+                border: '1px solid rgba(99, 102, 241, 0.4)',
               }}
-            >
-              VEXORA
-            </span>
-            <span style={{ fontWeight: 700, color: 'var(--vx-text-primary, #F8FAFC)', fontSize: '0.95rem' }}>
-              ESPORTS
+            />
+            <span style={{ fontWeight: 800, color: 'var(--vx-text-primary, #F8FAFC)', fontSize: '1rem', letterSpacing: '0.05em' }}>
+              VEXORA <span style={{ color: '#6366F1', fontSize: '0.8rem' }}>ESPORTS</span>
             </span>
           </div>
           <p style={{ fontSize: '0.8125rem', lineHeight: 1.6, margin: 0 }}>

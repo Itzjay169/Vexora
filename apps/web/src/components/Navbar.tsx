@@ -70,30 +70,28 @@ export function Navbar() {
               gap: '0.625rem',
             }}
           >
-            <div
+            <img
+              src="/logo.png"
+              alt="Vexora Esports Logo"
               style={{
-                background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
-                color: '#FFFFFF',
-                fontWeight: 900,
-                fontSize: '0.875rem',
-                letterSpacing: '1px',
-                padding: '0.35rem 0.65rem',
+                width: '36px',
+                height: '36px',
                 borderRadius: '8px',
+                objectFit: 'cover',
                 boxShadow: '0 0 16px rgba(99, 102, 241, 0.4)',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
               }}
-            >
-              VEXORA
-            </div>
+            />
             <span
               style={{
-                fontSize: '1rem',
-                fontWeight: 700,
+                fontSize: '1.125rem',
+                fontWeight: 900,
                 color: theme === 'dark' ? '#F8FAFC' : '#0F172A',
-                letterSpacing: '-0.02em',
+                letterSpacing: '0.05em',
                 display: 'inline-block',
               }}
             >
-              ESPORTS
+              VEXORA <span style={{ color: '#6366F1', fontSize: '0.85rem', fontWeight: 700 }}>ESPORTS</span>
             </span>
           </Link>
 

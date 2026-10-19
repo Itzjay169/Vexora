@@ -138,22 +138,36 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         elevation: 0,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: isAdmin
-                    ? VexoraColors.accent
-                    : (isOrganiser ? VexoraColors.secondary : VexoraColors.primary),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                'VEXORA',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 13,
-                  letterSpacing: 1.2,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 28,
+                height: 28,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isAdmin
+                        ? VexoraColors.accent
+                        : (isOrganiser ? VexoraColors.secondary : VexoraColors.primary),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'V',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+                  ),
                 ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'VEXORA',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+                letterSpacing: 1.2,
               ),
             ),
             const SizedBox(width: 8),
