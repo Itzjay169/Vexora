@@ -39,6 +39,7 @@ import { extendedRouter } from './extended/extended.routes.js';
 import { complianceRouter } from './compliance/compliance.routes.js';
 import { setupWebSocketServer } from './common/websocket.js';
 import { healthRouter } from './common/health.js';
+import { wafMiddleware } from './common/wafMiddleware.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -82,6 +83,24 @@ app.use(requestLogger);
 
 // 6. Global rate limiting on /api/*
 app.use('/api/', apiLimiter);
+
+// 7. WAF, Bot Defense & Exploit Inspection (Phase 36)
+app.use(wafMiddleware);
+
+// RFC 9116: Security.txt endpoint
+const SECURITY_TXT = `# RFC 9116: Vexora Security & Vulnerability Disclosure
+Contact: mailto:security@vexora.gg
+Contact: mailto:grievance-officer@vexora.gg
+Expires: 2027-12-31T23:59:59.000Z
+Encryption: https://vexora.gg/pgp-key.asc
+Acknowledgments: https://vexora.gg/security/hall-of-fame
+Preferred-Languages: en, hi, or
+Canonical: https://vexora.gg/.well-known/security.txt
+Policy: https://vexora.gg/security
+`;
+app.get(['/.well-known/security.txt', '/security.txt'], (_req, res) => {
+  res.type('text/plain').send(SECURITY_TXT);
+});
 
 // ─── API Routes (/api/v1/*) ─────────────────────────────────────────────
 app.use('/api/v1/health',         healthRouter);

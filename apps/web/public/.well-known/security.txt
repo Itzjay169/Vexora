@@ -1,0 +1,11 @@
+# RFC 9116: Vexora Security & Vulnerability Disclosure
+Contact: mailto:security@vexora.gg
+Contact: mailto:grievance-officer@vexora.gg
+Expires: 2027-12-31T23:59:59.000Z
+Encryption: https://vexora.gg/pgp-key.asc
+Acknowledgments: https://vexora.gg/security/hall-of-fame
+Preferred-Languages: en, hi, or
+Canonical: https://vexora.gg/.well-known/security.txt
+Policy: https://vexora.gg/security
+Hiring: https://vexora.gg/careers
+CSAF: https://vexora.gg/.well-known/csaf/provider-metadata.json

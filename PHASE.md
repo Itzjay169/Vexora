@@ -289,7 +289,7 @@ Goal: Legal and inclusive readiness. PDF refs: Sections 24, 31, 48. Build:
 Data map and processing register; granular revocable consent (analytics, notifications, location, marketing); guardian consent for minors; export/correct/delete-my-data workflows with SLAs; retention schedule job (evidence 12 months after case closure, chat 90 days, logs 12 months, KYC/financial as required); IP/device hashing with rotating salts; vendor register.
 Grievance officer page and takedown workflow (India IT Rules).
 Localisation (English, Hindi, Odia), regional formatting, RTL readiness; accessibility audit (screen reader, contrast, large fonts). MCP: Developer Knowledge, Dart MCP, Playwright (accessibility), Postgres, Filesystem. Security gate: Deletion keeps legally required financial/audit records only. Exit: Data-subject request tested end-to-end; accessibility checks pass.
-PHASE 36: Security Hardening & Penetration Testing [NEXT]
+PHASE 36: Security Hardening & Penetration Testing [COMPLETED]
 
 Goal: Zero open critical/high vulnerabilities. PDF refs: Sections 18, 19, 47, 39 (Phase 9). Build:
 
@@ -297,7 +297,7 @@ OWASP ASVS (web/API) and MASVS (mobile) checklists; OWASP Top-10 mapping verifie
 Pen test (independent, or structured internal) on API, apps, admin, storage; fix critical/high.
 Edge: WAF, bot management, CDN; mobile: certificate pinning with rotation plan, Play Integrity/App Attest, obfuscation, root/jailbreak signals into risk score; App Check enforced in production.
 Secrets rotated; production access reviewed; security.txt + responsible disclosure page. MCP: Playwright (regression + security flows), GitHub (code-scanning/Dependabot/secret-scanning triage), Firebase, Developer Knowledge, Dart MCP, Postgres. Security gate: Zero open critical/high; mediums have owner + date. Exit: Signed least-privilege audit; pen-test report archived.
-PHASE 37: Load Testing, Observability, Backup & Disaster Recovery
+PHASE 37: Load Testing, Observability, Backup & Disaster Recovery [NEXT]
 
 Goal: Prove it is fast, watchable and recoverable. PDF refs: Sections 45, 46, 49, 39 (Phase 9). Build:
 
