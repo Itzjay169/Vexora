@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { query } from './database.js';
+import { metricsRegistry } from './metrics.js';
+import { alertService } from './alertService.js';
 
 export const healthRouter = Router();
 
@@ -32,3 +34,31 @@ healthRouter.get('/', async (_req, res) => {
   const statusCode = checks.status === 'healthy' ? 200 : 503;
   res.status(statusCode).json(checks);
 });
+
+/**
+ * Public/Internal System Status Summary for live health dashboards
+ */
+healthRouter.get('/system-status', (_req, res) => {
+  const summary = alertService.getSystemStatusSummary();
+  res.json({
+    success: true,
+    data: summary,
+  });
+});
+
+/**
+ * Prometheus & JSON Metrics Endpoint
+ */
+healthRouter.get('/metrics', (req, res) => {
+  const acceptHeader = req.get('accept') || '';
+  if (acceptHeader.includes('application/json')) {
+    return res.json({
+      success: true,
+      data: metricsRegistry.getSummary(),
+    });
+  }
+
+  res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+  res.send(metricsRegistry.toPrometheusFormat());
+});
+

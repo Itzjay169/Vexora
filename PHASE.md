@@ -297,7 +297,7 @@ OWASP ASVS (web/API) and MASVS (mobile) checklists; OWASP Top-10 mapping verifie
 Pen test (independent, or structured internal) on API, apps, admin, storage; fix critical/high.
 Edge: WAF, bot management, CDN; mobile: certificate pinning with rotation plan, Play Integrity/App Attest, obfuscation, root/jailbreak signals into risk score; App Check enforced in production.
 Secrets rotated; production access reviewed; security.txt + responsible disclosure page. MCP: Playwright (regression + security flows), GitHub (code-scanning/Dependabot/secret-scanning triage), Firebase, Developer Knowledge, Dart MCP, Postgres. Security gate: Zero open critical/high; mediums have owner + date. Exit: Signed least-privilege audit; pen-test report archived.
-PHASE 37: Load Testing, Observability, Backup & Disaster Recovery [NEXT]
+PHASE 37: Load Testing, Observability, Backup & Disaster Recovery [COMPLETED]
 
 Goal: Prove it is fast, watchable and recoverable. PDF refs: Sections 45, 46, 49, 39 (Phase 9). Build:
 
@@ -306,7 +306,7 @@ Observability: structured logs, metrics, OpenTelemetry tracing, Sentry + Crashly
 Incident response: severity levels, runbooks (DB failover, stuck payouts, webhook outage, leaked secret, compromised admin, evidence storage outage, DDoS), status page, in-app banner, breach procedure.
 Backups, point-in-time recovery, full restore drill with RPO/RTO recorded; PgBouncer, partitioning plan, tournament-start spike plan.
 Terraform/IaC, blue/green or canary with auto-rollback, signed images + SBOM. MCP: Postgres (restore verification, vacuum/bloat, index review), Playwright, GitHub, Context7. Security gate: Restore drill completed with timing recorded. Exit: Load targets met; incident-response runbook rehearsed once.
-PHASE 38: Store Preparation & Release Candidate
+PHASE 38: Store Preparation & Release Candidate [NEXT]
 
 Goal: Submit-ready builds. PDF refs: Sections 29, 35, 39 (Phase 9). Build:
 

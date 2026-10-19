@@ -111,6 +111,7 @@ export function Footer() {
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.8125rem' }}>
             <li><a href="http://localhost:3001" style={{ color: 'inherit', textDecoration: 'none' }}>Admin Zero-Trust Console</a></li>
             <li><Link href="/security" style={{ color: 'inherit', textDecoration: 'none' }}>Responsible Disclosure (RFC 9116)</Link></li>
+            <li><Link href="/status" style={{ color: 'inherit', textDecoration: 'none' }}>System Status & Telemetry</Link></li>
             <li><span style={{ color: 'var(--vx-text-muted, #64748B)' }}>DPDP Act 2023 Compliant</span></li>
             <li><span style={{ color: 'var(--vx-text-muted, #64748B)' }}>IT Rules 2021 Grievance Redressal</span></li>
             <li><span style={{ color: 'var(--vx-text-muted, #64748B)' }}>Closed-Loop Platform Credits</span></li>

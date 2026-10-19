@@ -40,6 +40,7 @@ import { complianceRouter } from './compliance/compliance.routes.js';
 import { setupWebSocketServer } from './common/websocket.js';
 import { healthRouter } from './common/health.js';
 import { wafMiddleware } from './common/wafMiddleware.js';
+import { metricsMiddleware } from './common/metrics.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -48,6 +49,9 @@ const httpServer = createServer(app);
 
 // 1. Correlation ID — must be first so all downstream middleware has the ID
 app.use(correlationId);
+
+// 1b. Observability & Telemetry Metrics (Phase 37)
+app.use(metricsMiddleware);
 
 // 2. Security headers
 app.use(helmet({
@@ -104,6 +108,7 @@ app.get(['/.well-known/security.txt', '/security.txt'], (_req, res) => {
 
 // ─── API Routes (/api/v1/*) ─────────────────────────────────────────────
 app.use('/api/v1/health',         healthRouter);
+app.use('/api/v1/metrics',        (req, res, next) => { req.url = '/metrics'; healthRouter(req, res, next); });
 app.use('/api/v1/auth',           authRouter);
 app.use('/api/v1/users',          usersRouter);
 app.use('/api/v1/games',          gamesRouter);
